@@ -1,6 +1,6 @@
 package dev.ghidora.utabridge_server.models;
 
-import dev.ghidora.utabridge_server.enums.OAuthProvider;
+import dev.ghidora.utabridge_server.enums.IdentityProvider;
 import jakarta.persistence.*;
 
 @Entity
@@ -24,7 +24,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OAuthProvider provider;
+    private IdentityProvider provider;
 
     public Long getId() {
         return id;
@@ -66,11 +66,11 @@ public class User {
         this.providerId = providerId;
     }
 
-    public OAuthProvider getProvider() {
+    public IdentityProvider getProvider() {
         return provider;
     }
 
-    public void setProvider(OAuthProvider provider) {
+    public void setProvider(IdentityProvider provider) {
         this.provider = provider;
     }
 }

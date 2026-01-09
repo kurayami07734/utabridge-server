@@ -1,12 +1,12 @@
 package dev.ghidora.utabridge_server.enums;
 
-public enum OAuthProvider {
+public enum IdentityProvider {
     GOOGLE("google"),
     DISCORD("discord");
 
     private final String value;
 
-    OAuthProvider(String value) {
+    IdentityProvider(String value) {
         this.value = value;
     }
 
@@ -14,8 +14,8 @@ public enum OAuthProvider {
         return value;
     }
 
-    public static OAuthProvider fromString(String text) throws IllegalArgumentException {
-        for (var provider : OAuthProvider.values()) {
+    public static IdentityProvider fromString(String text) throws IllegalArgumentException {
+        for (var provider : IdentityProvider.values()) {
             if (text.equals(provider.getValue())) {
                 return provider;
             }
