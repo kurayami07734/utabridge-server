@@ -1,9 +1,7 @@
 package dev.ghidora.utabridge_server.controllers;
 
 import dev.ghidora.utabridge_server.enums.IdentityProvider;
-import dev.ghidora.utabridge_server.repositories.UserRepository;
 import dev.ghidora.utabridge_server.services.AuthService;
-import dev.ghidora.utabridge_server.services.IdentityTokenVerifier;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -22,14 +20,9 @@ public class AuthController {
         this.authService = authService;
     }
 
-    public record AuthRequest(
-            @NotBlank String token,
-            @NotBlank IdentityProvider provider
-    ) {
-    }
+    public record AuthRequest(@NotBlank String token, @NotBlank IdentityProvider provider) {}
 
-    public record AuthResponse(String token) {
-    }
+    public record AuthResponse(String token) {}
 
     @PostMapping()
     public ResponseEntity<AuthResponse> handleAuth(@RequestBody AuthRequest payload) {

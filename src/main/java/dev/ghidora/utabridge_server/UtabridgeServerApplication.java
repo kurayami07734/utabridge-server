@@ -6,8 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class UtabridgeServerApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(UtabridgeServerApplication.class, args);
-	}
-
+    public static void main(String[] args) {
+        SpringApplication.run(UtabridgeServerApplication.class, args);
+    }
 }

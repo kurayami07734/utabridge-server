@@ -1,12 +1,10 @@
 package dev.ghidora.utabridge_server.services;
 
-
 import dev.ghidora.utabridge_server.models.User;
 import dev.ghidora.utabridge_server.repositories.UserRepository;
-import org.springframework.stereotype.Service;
-
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import org.springframework.stereotype.Service;
 
 @Service
 public class AuthService {
@@ -14,7 +12,10 @@ public class AuthService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
 
-    public AuthService(IdentityTokenVerifier identityTokenVerifier, UserRepository userRepository, JwtService jwtService) {
+    public AuthService(
+            IdentityTokenVerifier identityTokenVerifier,
+            UserRepository userRepository,
+            JwtService jwtService) {
         this.identityTokenVerifier = identityTokenVerifier;
         this.userRepository = userRepository;
         this.jwtService = jwtService;
@@ -22,6 +23,7 @@ public class AuthService {
 
     /**
      * Fetch a user or create one if not present in the database
+     *
      * @param email email
      * @param name name
      * @param pictureUrl pictureUrl
@@ -29,31 +31,34 @@ public class AuthService {
      * @return User
      */
     private User getOrCreateUser(String email, String name, String pictureUrl, String providerId) {
-        return userRepository.findByEmail(email).orElseGet(() -> {
-            User user = new User();
-            user.setEmail(email);
-            user.setName(name);
-            user.setPictureUrl(pictureUrl);
-            user.setProviderId(providerId);
-            user.setProvider(identityTokenVerifier.getProvider());
-            return userRepository.save(user);
-        });
+        return userRepository
+                .findByEmail(email)
+                .orElseGet(
+                        () -> {
+                            User user = new User();
+                            user.setEmail(email);
+                            user.setName(name);
+                            user.setPictureUrl(pictureUrl);
+                            user.setProviderId(providerId);
+                            user.setProvider(identityTokenVerifier.getProvider());
+                            return userRepository.save(user);
+                        });
     }
 
     /**
-     * Creates a JWT for the user
-     * NOTE: This method will create a new user if not already present
+     * Creates a JWT for the user NOTE: This method will create a new user if not already present
+     *
      * @param token third party token
      * @return String signed JWT
      */
     public String createToken(String token) throws GeneralSecurityException, IOException {
         var verifiedUser = identityTokenVerifier.verifyToken(token);
-        User user = getOrCreateUser(
-                verifiedUser.email(),
-                verifiedUser.name(),
-                verifiedUser.pictureUrl(),
-                verifiedUser.providerId()
-        );
+        User user =
+                getOrCreateUser(
+                        verifiedUser.email(),
+                        verifiedUser.name(),
+                        verifiedUser.pictureUrl(),
+                        verifiedUser.providerId());
         return jwtService.generateToken(user.getId().toString());
     }
 }
