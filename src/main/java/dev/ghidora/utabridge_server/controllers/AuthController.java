@@ -15,12 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-    private final IdentityTokenVerifier identityTokenVerifier;
     private final AuthService authService;
 
     @Autowired
-    public AuthController(IdentityTokenVerifier identityTokenVerifier, AuthService authService) {
-        this.identityTokenVerifier = identityTokenVerifier;
+    public AuthController(AuthService authService) {
         this.authService = authService;
     }
 
@@ -35,18 +33,9 @@ public class AuthController {
 
     @PostMapping()
     public ResponseEntity<AuthResponse> handleAuth(@RequestBody AuthRequest payload) {
-        // TODO: respect provider when adding support for discord login
         try {
-            var verifiedUser = identityTokenVerifier.verifyToken(payload.token());
-
-            var user = authService.getOrCreateUser(
-                    verifiedUser.email(),
-                    verifiedUser.name(),
-                    verifiedUser.pictureUrl(),
-                    verifiedUser.providerId()
-            );
-
-            return ResponseEntity.ok().body(new AuthResponse(payload.token()));
+            var token = authService.createToken(payload.token());
+            return ResponseEntity.ok().body(new AuthResponse(token));
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
