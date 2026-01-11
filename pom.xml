@@ -124,8 +124,7 @@
 				</configuration>
 				<executions>
 					<execution>
-						<id>validate</id>
-						<phase>validate</phase>
+						<id>check</id>
 						<goals>
 							<goal>check</goal>
 						</goals>
@@ -140,10 +139,11 @@
 					<java>
 						<googleJavaFormat>
 							<version>1.25.2</version>
-							<style>AOSP</style>
+							<style>GOOGLE</style>
 							<reflowLongStrings>true</reflowLongStrings>
 						</googleJavaFormat>
 					</java>
+					<lineEndings>UNIX</lineEndings>
 				</configuration>
 				<executions>
 					<execution>
