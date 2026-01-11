@@ -21,9 +21,10 @@ public class GoogleTranslateService implements TranslationService {
     private final String projectId;
 
     @Autowired
-    public GoogleTranslateService(Translate translate,
-                                  TranslationServiceClient translationServiceClient,
-                                  @Value("${gcp.project-id}") String projectId) {
+    public GoogleTranslateService(
+            Translate translate,
+            TranslationServiceClient translationServiceClient,
+            @Value("${gcp.project-id}") String projectId) {
         this.translate = translate;
         this.translationServiceClient = translationServiceClient;
         this.projectId = projectId;
@@ -31,11 +32,11 @@ public class GoogleTranslateService implements TranslationService {
 
     @Override
     public String translateText(String text, String sourceLanguage, String targetLanguage) {
-        Translation translation = translate.translate(
-                text,
-                TranslateOption.sourceLanguage(sourceLanguage),
-                TranslateOption.targetLanguage(targetLanguage)
-        );
+        Translation translation =
+                translate.translate(
+                        text,
+                        TranslateOption.sourceLanguage(sourceLanguage),
+                        TranslateOption.targetLanguage(targetLanguage));
         return translation.getTranslatedText();
     }
 
@@ -44,11 +45,12 @@ public class GoogleTranslateService implements TranslationService {
         // Location is always "global" for this API
         LocationName parent = LocationName.of(projectId, "global");
 
-        RomanizeTextRequest request = RomanizeTextRequest.newBuilder()
-                .setParent(parent.toString())
-                .addContents(text)
-                .setSourceLanguageCode(sourceLanguage)
-                .build();
+        RomanizeTextRequest request =
+                RomanizeTextRequest.newBuilder()
+                        .setParent(parent.toString())
+                        .addContents(text)
+                        .setSourceLanguageCode(sourceLanguage)
+                        .build();
 
         RomanizeTextResponse response = translationServiceClient.romanizeText(request);
 

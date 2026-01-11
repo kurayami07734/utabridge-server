@@ -19,9 +19,8 @@ public class TranslateController {
     public record TranslateResponse(String translatedText, String romanizedText) {}
 
     @GetMapping("/api/translate")
-    public TranslateResponse getTranslation(@RequestParam String text,
-                                 @RequestParam String from,
-                                 @RequestParam String to) {
+    public TranslateResponse getTranslation(
+            @RequestParam String text, @RequestParam String from, @RequestParam String to) {
         var translated = translationService.translateText(text, from, to);
         var romanized = translationService.romanizeText(text, from);
         return new TranslateResponse(translated, romanized);

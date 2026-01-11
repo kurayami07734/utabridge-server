@@ -5,28 +5,27 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import dev.ghidora.utabridge_server.enums.IdentityProvider;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Primary;
-import org.springframework.stereotype.Service;
-
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Primary;
+import org.springframework.stereotype.Service;
 
 @Service
 @Primary
 public class GoogleTokenVerifier implements IdentityTokenVerifier {
     private final GoogleIdTokenVerifier verifier;
 
-    public GoogleTokenVerifier(@Value("${gcp.client-id}") String clientId) throws GeneralSecurityException, IOException {
-        verifier = new GoogleIdTokenVerifier.Builder(
-                GoogleNetHttpTransport.newTrustedTransport(),
-                GsonFactory.getDefaultInstance()
-        )
-                .setAudience(Collections.singletonList(clientId))
-                .build();
+    public GoogleTokenVerifier(@Value("${gcp.client-id}") String clientId)
+            throws GeneralSecurityException, IOException {
+        verifier =
+                new GoogleIdTokenVerifier.Builder(
+                                GoogleNetHttpTransport.newTrustedTransport(),
+                                GsonFactory.getDefaultInstance())
+                        .setAudience(Collections.singletonList(clientId))
+                        .build();
     }
-
 
     @Override
     public IdentityProvider getProvider() {
@@ -47,8 +46,6 @@ public class GoogleTokenVerifier implements IdentityTokenVerifier {
                 (String) payload.get("given_name"),
                 payload.getEmail(),
                 (String) payload.get("picture"),
-                payload.getSubject()
-        );
+                payload.getSubject());
     }
-
 }
