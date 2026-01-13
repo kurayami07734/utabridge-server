@@ -1,4 +1,4 @@
-package dev.ghidora.utabridgeserver.services;
+package dev.ghidora.utabridgeserver.utilities;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -13,11 +13,14 @@ import org.springframework.stereotype.Service;
 /** Service for handling JWT operations. */
 @Service
 public class JwtService {
-  private static final int VALIDITY_IN_MILLIS = 1000 * 60 * 60;
+  private final long validityDurationMs;
   private final String secretKey;
 
-  public JwtService(@Value("${jwt.secret}") String secretKey) {
+  public JwtService(
+      @Value("${jwt.secret}") String secretKey,
+      @Value("${jwt.validity-duration-ms}") long validityDurationMs) {
     this.secretKey = secretKey;
+    this.validityDurationMs = validityDurationMs;
   }
 
   private SecretKey getSigningKey() {
@@ -35,7 +38,7 @@ public class JwtService {
     return Jwts.builder()
         .subject(subject)
         .issuedAt(new Date(System.currentTimeMillis()))
-        .expiration(new Date(System.currentTimeMillis() + VALIDITY_IN_MILLIS))
+        .expiration(new Date(System.currentTimeMillis() + validityDurationMs))
         .signWith(getSigningKey())
         .compact();
   }
