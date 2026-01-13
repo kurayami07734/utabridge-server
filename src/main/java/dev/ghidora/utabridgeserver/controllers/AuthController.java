@@ -1,6 +1,6 @@
 package dev.ghidora.utabridgeserver.controllers;
 
-import dev.ghidora.utabridgeserver.enums.IdentityProvider;
+import dev.ghidora.utabridgeserver.dtos.Credentials;
 import dev.ghidora.utabridgeserver.services.AuthService;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,28 +25,43 @@ public class AuthController {
    * Request payload for authentication.
    *
    * @param token The identity token.
-   * @param provider The identity provider.
    */
-  public record AuthRequest(@NotBlank String token, @NotBlank IdentityProvider provider) {}
+  public record LoginRequest(@NotBlank String token) {}
 
   /**
-   * Response payload for authentication.
-   *
-   * @param token The generated JWT.
-   */
-  public record AuthResponse(String token) {}
-
-  /**
-   * Handles authentication requests.
+   * Handles login requests.
    *
    * @param payload The authentication request payload.
    * @return The response entity containing the JWT or an error.
    */
-  @PostMapping()
-  public ResponseEntity<AuthResponse> handleAuth(@RequestBody AuthRequest payload) {
+  @PostMapping("/login")
+  public ResponseEntity<Credentials> handleLogin(@RequestBody LoginRequest payload) {
     try {
-      var token = authService.createToken(payload.token());
-      return ResponseEntity.ok().body(new AuthResponse(token));
+      var credentials = authService.getLoginCredentials(payload.token());
+      return ResponseEntity.ok().body(credentials);
+    } catch (Exception e) {
+      return ResponseEntity.badRequest().build();
+    }
+  }
+
+  /**
+   * Request payload for refreshing tokens.
+   *
+   * @param token The refresh token.
+   */
+  public record RefreshRequest(@NotBlank String token) {}
+
+  /**
+   * Handles refresh token requests.
+   *
+   * @param payload The refresh token request payload.
+   * @return The response entity containing the JWT or an error.
+   */
+  @PostMapping("/refresh")
+  public ResponseEntity<Credentials> handleRefreshToken(@RequestBody RefreshRequest payload) {
+    try {
+      var token = authService.refreshCredentials(payload.token());
+      return ResponseEntity.ok().body(token);
     } catch (Exception e) {
       return ResponseEntity.badRequest().build();
     }

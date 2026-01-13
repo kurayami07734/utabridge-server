@@ -1,74 +1,107 @@
 package dev.ghidora.utabridgeserver.services;
 
+import dev.ghidora.utabridgeserver.dtos.Credentials;
+import dev.ghidora.utabridgeserver.models.RefreshToken;
 import dev.ghidora.utabridgeserver.models.User;
-import dev.ghidora.utabridgeserver.repositories.UserRepository;
+import dev.ghidora.utabridgeserver.repositories.RefreshTokenRepository;
+import dev.ghidora.utabridgeserver.utilities.JwtService;
+import dev.ghidora.utabridgeserver.utilities.RefreshTokenGenerator;
+import dev.ghidora.utabridgeserver.utilities.Sha256HashGenerator;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Service for handling authentication logic. */
 @Service
+@Transactional
 public class AuthService {
   private final IdentityTokenVerifier identityTokenVerifier;
-  private final UserRepository userRepository;
   private final JwtService jwtService;
+  private final UserService userService;
+  private final RefreshTokenRepository refreshTokenRepository;
 
   /**
    * Constructs an AuthService.
    *
    * @param identityTokenVerifier Verifier for identity tokens.
-   * @param userRepository Repository for user data.
+   * @param userService Service for user management.
    * @param jwtService Service for JWT operations.
+   * @param refreshTokenRepository Repository for refresh tokens.
    */
   public AuthService(
       IdentityTokenVerifier identityTokenVerifier,
-      UserRepository userRepository,
-      JwtService jwtService) {
+      JwtService jwtService,
+      UserService userService,
+      RefreshTokenRepository refreshTokenRepository) {
     this.identityTokenVerifier = identityTokenVerifier;
-    this.userRepository = userRepository;
     this.jwtService = jwtService;
+    this.userService = userService;
+    this.refreshTokenRepository = refreshTokenRepository;
   }
 
-  /**
-   * Fetch a user or create one if not present in the database.
-   *
-   * @param email email
-   * @param name name
-   * @param pictureUrl pictureUrl
-   * @param providerId providerId
-   * @return User
-   */
-  private User getOrCreateUser(String email, String name, String pictureUrl, String providerId) {
-    return userRepository
-        .findByEmail(email)
-        .orElseGet(
-            () -> {
-              User user = new User();
-              user.setEmail(email);
-              user.setName(name);
-              user.setPictureUrl(pictureUrl);
-              user.setProviderId(providerId);
-              user.setProvider(identityTokenVerifier.getProvider());
-              return userRepository.save(user);
-            });
+  private String getRefreshToken(User user) {
+    var token = RefreshTokenGenerator.generate();
+    RefreshToken refreshToken = new RefreshToken();
+    refreshToken.setHashedToken(Sha256HashGenerator.hashString(token));
+    refreshToken.setUser(user);
+    refreshToken.setExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS));
+    refreshTokenRepository.save(refreshToken);
+    return token;
   }
 
   /**
    * Creates a JWT for the user NOTE: This method will create a new user if not already present.
    *
    * @param token third party token
-   * @return String signed JWT
+   * @return Credentials
    * @throws GeneralSecurityException if security error occurs
    * @throws IOException if io error occurs
    */
-  public String createToken(String token) throws GeneralSecurityException, IOException {
+  public Credentials getLoginCredentials(String token)
+      throws GeneralSecurityException, IOException {
     var verifiedUser = identityTokenVerifier.verifyToken(token);
+
     User user =
-        getOrCreateUser(
+        userService.getOrCreateUser(
             verifiedUser.email(),
             verifiedUser.name(),
             verifiedUser.pictureUrl(),
-            verifiedUser.providerId());
-    return jwtService.generateToken(user.getId().toString());
+            verifiedUser.providerId(),
+            identityTokenVerifier.getProvider());
+
+    var authToken = jwtService.generateToken(user.getId().toString());
+    var refreshToken = getRefreshToken(user);
+
+    return new Credentials(authToken, refreshToken);
+  }
+
+  /**
+   * Refreshes the authentication credentials using a valid refresh token.
+   *
+   * @param token The raw refresh token.
+   * @return A new set of credentials (JWT + new refresh token).
+   * @throws GeneralSecurityException If the token is invalid or revoked.
+   * @throws IOException If an IO error occurs.
+   */
+  public Credentials refreshCredentials(String token) throws GeneralSecurityException, IOException {
+    String hashedToken = Sha256HashGenerator.hashString(token);
+
+    Optional<RefreshToken> refreshToken = refreshTokenRepository.findByHashedToken(hashedToken);
+
+    if (refreshToken.isEmpty() || refreshToken.get().isRevoked()) {
+      throw new GeneralSecurityException("Invalid refresh token!");
+    }
+
+    refreshToken.get().setRevoked(true);
+    refreshTokenRepository.save(refreshToken.get());
+
+    var authToken = jwtService.generateToken(refreshToken.get().getUser().getId().toString());
+    var newRefreshToken = getRefreshToken(refreshToken.get().getUser());
+
+    return new Credentials(authToken, newRefreshToken);
   }
 }
