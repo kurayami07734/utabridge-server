@@ -6,7 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.ghidora.utabridgeserver.enums.IdentityProvider;
+import dev.ghidora.utabridgeserver.dtos.Credentials;
 import dev.ghidora.utabridgeserver.services.AuthService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,38 +27,80 @@ class AuthControllerTest {
   @Autowired private ObjectMapper objectMapper;
 
   @Test
-  void handleAuth_ValidToken_ReturnsToken() throws Exception {
+  void handleLogin_ValidToken_ReturnsCredentials() throws Exception {
     // Arrange
     String tokenIn = "valid-google-token";
-    String tokenOut = "generated-jwt-token";
-    AuthController.AuthRequest request =
-        new AuthController.AuthRequest(tokenIn, IdentityProvider.GOOGLE);
+    String authToken = "generated-jwt-token";
+    String refreshToken = "refresh-token";
+    AuthController.LoginRequest request = new AuthController.LoginRequest(tokenIn);
 
-    given(authService.createToken(tokenIn)).willReturn(tokenOut);
+    given(authService.getLoginCredentials(tokenIn))
+        .willReturn(new Credentials(authToken, refreshToken));
 
     // Act & Assert
     mockMvc
         .perform(
-            post("/api/auth")
+            post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.token").value(tokenOut));
+        .andExpect(jsonPath("$.authToken").value(authToken))
+        .andExpect(jsonPath("$.refreshToken").value(refreshToken));
   }
 
   @Test
-  void handleAuth_InvalidToken_ReturnsBadRequest() throws Exception {
+  void handleLogin_InvalidToken_ReturnsBadRequest() throws Exception {
     // Arrange
     String tokenIn = "invalid-token";
-    AuthController.AuthRequest request =
-        new AuthController.AuthRequest(tokenIn, IdentityProvider.GOOGLE);
+    AuthController.LoginRequest request = new AuthController.LoginRequest(tokenIn);
 
-    given(authService.createToken(tokenIn)).willThrow(new RuntimeException("Invalid token"));
+    given(authService.getLoginCredentials(tokenIn))
+        .willThrow(new RuntimeException("Invalid token"));
 
     // Act & Assert
     mockMvc
         .perform(
-            post("/api/auth")
+            post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void handleRefreshToken_ValidToken_ReturnsNewCredentials() throws Exception {
+    // Arrange
+    String refreshTokenIn = "valid-refresh-token";
+    String newAuthToken = "new-jwt-token";
+    String newRefreshToken = "new-refresh-token";
+    AuthController.RefreshRequest request = new AuthController.RefreshRequest(refreshTokenIn);
+
+    given(authService.refreshCredentials(refreshTokenIn))
+        .willReturn(new Credentials(newAuthToken, newRefreshToken));
+
+    // Act & Assert
+    mockMvc
+        .perform(
+            post("/api/auth/refresh")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.authToken").value(newAuthToken))
+        .andExpect(jsonPath("$.refreshToken").value(newRefreshToken));
+  }
+
+  @Test
+  void handleRefreshToken_InvalidToken_ReturnsBadRequest() throws Exception {
+    // Arrange
+    String refreshTokenIn = "invalid-refresh-token";
+    AuthController.RefreshRequest request = new AuthController.RefreshRequest(refreshTokenIn);
+
+    given(authService.refreshCredentials(refreshTokenIn))
+        .willThrow(new RuntimeException("Invalid token"));
+
+    // Act & Assert
+    mockMvc
+        .perform(
+            post("/api/auth/refresh")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());
