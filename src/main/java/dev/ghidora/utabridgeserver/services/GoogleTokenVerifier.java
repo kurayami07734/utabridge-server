@@ -41,9 +41,13 @@ public class GoogleTokenVerifier implements IdentityTokenVerifier {
 
   @Override
   public VerifiedUser verifyToken(String token) throws GeneralSecurityException, IOException {
+    if (token == null) {
+      throw new GeneralSecurityException("Token cannot be null");
+    }
+
     GoogleIdToken idToken = verifier.verify(token);
 
-    if (token == null) {
+    if (idToken == null) {
       throw new GeneralSecurityException("Invalid google token!");
     }
 
