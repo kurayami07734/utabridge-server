@@ -1,0 +1,35 @@
+package dev.ghidora.utabridgeserver.controllers;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
+
+@WebMvcTest(HealthController.class)
+@ActiveProfiles("test")
+class HealthControllerTest {
+
+  @Autowired private MockMvc mockMvc;
+
+  @Test
+  void getHealth_ReturnsOkStatus() throws Exception {
+    mockMvc
+        .perform(get("/api/health"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.health").value("ok"));
+  }
+
+  @Test
+  void getHealth_ReturnsCorrectResponseFormat() throws Exception {
+    mockMvc
+        .perform(get("/api/health"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$").isNotEmpty())
+        .andExpect(jsonPath("$.health").isNotEmpty());
+  }
+}
