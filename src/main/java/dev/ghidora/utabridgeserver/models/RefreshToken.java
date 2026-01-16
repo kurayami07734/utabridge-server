@@ -18,7 +18,7 @@ public class RefreshToken {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(unique = true, nullable = true)
+  @Column(unique = true, nullable = false)
   private String hashedToken;
 
   @ManyToOne

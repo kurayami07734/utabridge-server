@@ -1,79 +1,122 @@
 package dev.ghidora.utabridgeserver.services;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import dev.ghidora.utabridgeserver.dtos.Credentials;
 import dev.ghidora.utabridgeserver.enums.IdentityProvider;
+import dev.ghidora.utabridgeserver.models.RefreshToken;
 import dev.ghidora.utabridgeserver.models.User;
-import dev.ghidora.utabridgeserver.repositories.UserRepository;
+import dev.ghidora.utabridgeserver.repositories.RefreshTokenRepository;
+import dev.ghidora.utabridgeserver.utilities.JwtService;
+import dev.ghidora.utabridgeserver.utilities.Sha256HashGenerator;
+import java.security.GeneralSecurityException;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
   @Mock private IdentityTokenVerifier identityTokenVerifier;
-
-  @Mock private UserRepository userRepository;
-
+  @Mock private UserService userService;
   @Mock private JwtService jwtService;
+  @Mock private RefreshTokenRepository refreshTokenRepository;
 
   @InjectMocks private AuthService authService;
 
   @Test
-  void createToken_ExistingUser_ReturnsJwt() throws Exception {
+  void getLoginCredentials_ValidToken_ReturnsCredentials() throws Exception {
     // Arrange
     String mockToken = "google-token";
     String email = "test@example.com";
-    // VerifiedUser(String name, String email, String pictureUrl, String providerId)
     var mockIdentity = new IdentityTokenVerifier.VerifiedUser("Test User", email, "url", "123");
-
-    when(identityTokenVerifier.verifyToken(mockToken)).thenReturn(mockIdentity);
-
-    User existingUser = new User();
-    existingUser.setId(1L);
-    existingUser.setEmail(email);
-
-    when(userRepository.findByEmail(email)).thenReturn(Optional.of(existingUser));
-    when(jwtService.generateToken("1")).thenReturn("signed-jwt");
-
-    // Act
-    String result = authService.createToken(mockToken);
-
-    // Assert
-    assertEquals("signed-jwt", result);
-    verify(userRepository, never()).save(any(User.class));
-  }
-
-  @Test
-  void createToken_NewUser_CreatesUserAndReturnsJwt() throws Exception {
-    // Arrange
-    String mockToken = "google-token";
-    String email = "new@example.com";
-    var mockIdentity = new IdentityTokenVerifier.VerifiedUser("New User", email, "url", "456");
 
     when(identityTokenVerifier.verifyToken(mockToken)).thenReturn(mockIdentity);
     when(identityTokenVerifier.getProvider()).thenReturn(IdentityProvider.GOOGLE);
 
-    when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+    User user = new User();
+    ReflectionTestUtils.setField(user, "id", 1L);
 
-    User savedUser = new User();
-    savedUser.setId(2L);
-    savedUser.setEmail(email);
+    when(userService.getOrCreateUser(
+            eq(email), eq("Test User"), eq("url"), eq("123"), eq(IdentityProvider.GOOGLE)))
+        .thenReturn(user);
 
-    when(userRepository.save(any(User.class))).thenReturn(savedUser);
-    when(jwtService.generateToken("2")).thenReturn("signed-jwt");
+    when(jwtService.generateToken("1")).thenReturn("signed-jwt");
 
     // Act
-    String result = authService.createToken(mockToken);
+    Credentials result = authService.getLoginCredentials(mockToken);
 
     // Assert
-    assertEquals("signed-jwt", result);
-    verify(userRepository).save(any(User.class));
+    assertThat(result.authToken()).isEqualTo("signed-jwt");
+    assertThat(result.refreshToken()).isNotEmpty();
+    verify(refreshTokenRepository).save(any(RefreshToken.class));
+  }
+
+  @Test
+  void refreshCredentials_ValidToken_ReturnsNewCredentials() throws Exception {
+    // Arrange
+    String rawToken = "raw-refresh-token";
+    String hashedToken = Sha256HashGenerator.hashString(rawToken);
+
+    User user = new User();
+    ReflectionTestUtils.setField(user, "id", 1L);
+
+    RefreshToken refreshToken = new RefreshToken();
+    refreshToken.setHashedToken(hashedToken);
+    refreshToken.setUser(user);
+    refreshToken.setRevoked(false);
+
+    when(refreshTokenRepository.findByHashedToken(hashedToken))
+        .thenReturn(Optional.of(refreshToken));
+    when(jwtService.generateToken("1")).thenReturn("new-jwt");
+
+    // Act
+    Credentials result = authService.refreshCredentials(rawToken);
+
+    // Assert
+    assertThat(result.authToken()).isEqualTo("new-jwt");
+    assertThat(result.refreshToken()).isNotEmpty();
+
+    // Verify old token revoked
+    assertThat(refreshToken.isRevoked()).isTrue();
+    verify(refreshTokenRepository).save(refreshToken);
+
+    // Verify new token saved (one for update, one for new)
+    verify(refreshTokenRepository, times(2)).save(any(RefreshToken.class));
+  }
+
+  @Test
+  void refreshCredentials_InvalidToken_ThrowsException() {
+    String rawToken = "invalid-token";
+    String hashedToken = Sha256HashGenerator.hashString(rawToken);
+
+    when(refreshTokenRepository.findByHashedToken(hashedToken)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> authService.refreshCredentials(rawToken))
+        .isInstanceOf(GeneralSecurityException.class)
+        .hasMessage("Invalid refresh token!");
+  }
+
+  @Test
+  void refreshCredentials_RevokedToken_ThrowsException() {
+    String rawToken = "revoked-token";
+    String hashedToken = Sha256HashGenerator.hashString(rawToken);
+
+    RefreshToken refreshToken = new RefreshToken();
+    refreshToken.setRevoked(true);
+
+    when(refreshTokenRepository.findByHashedToken(hashedToken))
+        .thenReturn(Optional.of(refreshToken));
+
+    assertThatThrownBy(() -> authService.refreshCredentials(rawToken))
+        .isInstanceOf(GeneralSecurityException.class)
+        .hasMessage("Invalid refresh token!");
   }
 }
