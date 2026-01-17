@@ -52,6 +52,10 @@ public class JwtService {
     return Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(token).getPayload();
   }
 
+  public String getSubject(String token) {
+    return extractClaim(token, Claims::getSubject);
+  }
+
   /**
    * Validates if the token matches the subject and is not expired.
    *
@@ -60,7 +64,7 @@ public class JwtService {
    * @return True if valid, false otherwise.
    */
   public boolean isValidToken(String token, String subject) {
-    final String extractedSubject = extractClaim(token, Claims::getSubject);
+    final String extractedSubject = getSubject(token);
     final Date expiry = extractClaim(token, Claims::getExpiration);
     final Date issuedAt = extractClaim(token, Claims::getIssuedAt);
     final Date now = new Date();
