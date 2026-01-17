@@ -1,30 +1,36 @@
 package dev.ghidora.utabridgeserver.controllers;
 
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.ghidora.utabridgeserver.dtos.Credentials;
+import dev.ghidora.utabridgeserver.exceptions.GlobalExceptionHandler;
 import dev.ghidora.utabridgeserver.services.AuthService;
+import java.security.GeneralSecurityException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(AuthController.class)
-@ActiveProfiles("test")
 class AuthControllerTest {
 
-  @Autowired private MockMvc mockMvc;
+  private MockMvc mockMvc;
+  private AuthService authService;
+  private ObjectMapper objectMapper;
 
-  @MockitoBean private AuthService authService;
-
-  @Autowired private ObjectMapper objectMapper;
+  @BeforeEach
+  void setUp() {
+    authService = mock(AuthService.class);
+    AuthController authController = new AuthController(authService);
+    objectMapper = new ObjectMapper();
+    mockMvc =
+        standaloneSetup(authController).setControllerAdvice(new GlobalExceptionHandler()).build();
+  }
 
   @Test
   void handleLogin_ValidToken_ReturnsCredentials() throws Exception {
@@ -49,13 +55,13 @@ class AuthControllerTest {
   }
 
   @Test
-  void handleLogin_InvalidToken_ReturnsBadRequest() throws Exception {
+  void handleLogin_InvalidToken_ReturnsUnauthorized() throws Exception {
     // Arrange
     String tokenIn = "invalid-token";
     AuthController.LoginRequest request = new AuthController.LoginRequest(tokenIn);
 
     given(authService.getLoginCredentials(tokenIn))
-        .willThrow(new RuntimeException("Invalid token"));
+        .willThrow(new GeneralSecurityException("Invalid token"));
 
     // Act & Assert
     mockMvc
@@ -63,7 +69,7 @@ class AuthControllerTest {
             post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isUnauthorized());
   }
 
   @Test
@@ -89,13 +95,13 @@ class AuthControllerTest {
   }
 
   @Test
-  void handleRefreshToken_InvalidToken_ReturnsBadRequest() throws Exception {
+  void handleRefreshToken_InvalidToken_ReturnsUnauthorized() throws Exception {
     // Arrange
     String refreshTokenIn = "invalid-refresh-token";
     AuthController.RefreshRequest request = new AuthController.RefreshRequest(refreshTokenIn);
 
     given(authService.refreshCredentials(refreshTokenIn))
-        .willThrow(new RuntimeException("Invalid token"));
+        .willThrow(new GeneralSecurityException("Invalid token"));
 
     // Act & Assert
     mockMvc
@@ -103,6 +109,6 @@ class AuthControllerTest {
             post("/api/auth/refresh")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isUnauthorized());
   }
 }

@@ -1,31 +1,40 @@
 package dev.ghidora.utabridgeserver.controllers;
 
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.ghidora.utabridgeserver.dtos.LocalizeResponse;
+import dev.ghidora.utabridgeserver.exceptions.GlobalExceptionHandler;
 import dev.ghidora.utabridgeserver.services.LocalizationService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(LocalizeController.class)
-@ActiveProfiles("test")
 class LocalizeControllerTest {
 
-  @Autowired private MockMvc mockMvc;
+  private MockMvc mockMvc;
+  private LocalizationService localizationService;
+  private ObjectMapper objectMapper;
 
-  @Autowired private ObjectMapper objectMapper;
+  private record LocalizeRequest(String text, String fromLanguage, String toLanguage) {}
 
-  @MockitoBean private LocalizationService localizationService;
+  @BeforeEach
+  void setUp() {
+    localizationService = mock(LocalizationService.class);
+    LocalizeController localizeController = new LocalizeController(localizationService);
+    objectMapper = new ObjectMapper();
+    mockMvc =
+        standaloneSetup(localizeController)
+            .setControllerAdvice(new GlobalExceptionHandler())
+            .build();
+  }
 
   @Test
   void localize_ValidRequest_Returns200() throws Exception {
@@ -108,6 +117,4 @@ class LocalizeControllerTest {
         .perform(post("/api/localize").contentType(MediaType.APPLICATION_JSON).content("{}"))
         .andExpect(status().isBadRequest());
   }
-
-  private record LocalizeRequest(String text, String fromLanguage, String toLanguage) {}
 }
