@@ -1,8 +1,18 @@
 package dev.ghidora.utabridgeserver.controllers;
 
 import dev.ghidora.utabridgeserver.dtos.Credentials;
+import dev.ghidora.utabridgeserver.exceptions.InvalidTokenException;
+import dev.ghidora.utabridgeserver.exceptions.RefreshTokenException;
 import dev.ghidora.utabridgeserver.services.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** Controller for authentication endpoints. */
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Authentication", description = "Endpoints for user authentication")
 public class AuthController {
   private final AuthService authService;
 
@@ -33,14 +44,49 @@ public class AuthController {
    *
    * @param payload The authentication request payload.
    * @return The response entity containing the JWT or an error.
+   * @throws InvalidTokenException if the identity token is invalid
+   * @throws IOException if an I/O error occurs
    */
+  @Operation(
+      summary = "Authenticate user",
+      description =
+          "Exchanges a third-party identity token (e.g., Google ID token) for JWT credentials."
+              + " If the user does not exist, a new account is created.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Successful authentication",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    examples =
+                        @ExampleObject(
+                            name = "Success",
+                            value =
+                                "{\"authToken\": \"eyJhbGciOiJIUzI1NiIs...\", \"refreshToken\":"
+                                    + " \"abc123...\"}"))),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid or expired identity token",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    examples =
+                        @ExampleObject(
+                            name = "Invalid Token",
+                            value =
+                                "{\"error\": \"INVALID_TOKEN\", \"message\": \"Invalid or expired"
+                                    + " identity token\", \"status\": 401}")))
+      })
   @PostMapping("/login")
-  public ResponseEntity<Credentials> handleLogin(@RequestBody LoginRequest payload) {
+  public ResponseEntity<Credentials> handleLogin(@RequestBody LoginRequest payload)
+      throws InvalidTokenException, IOException {
     try {
       var credentials = authService.getLoginCredentials(payload.token());
       return ResponseEntity.ok().body(credentials);
-    } catch (Exception e) {
-      return ResponseEntity.badRequest().build();
+    } catch (GeneralSecurityException e) {
+      throw new InvalidTokenException("Invalid or expired identity token");
     }
   }
 
@@ -56,14 +102,49 @@ public class AuthController {
    *
    * @param payload The refresh token request payload.
    * @return The response entity containing the JWT or an error.
+   * @throws RefreshTokenException if the refresh token is invalid
+   * @throws IOException if an I/O error occurs
    */
+  @Operation(
+      summary = "Refresh JWT token",
+      description =
+          "Exchanges a valid refresh token for new JWT credentials. "
+              + "The old refresh token is revoked and a new one is issued.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Successful token refresh",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    examples =
+                        @ExampleObject(
+                            name = "Success",
+                            value =
+                                "{\"authToken\": \"eyJhbGciOiJIUzI1NiIs...\", \"refreshToken\":"
+                                    + " \"newrefresh123...\"}"))),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid or revoked refresh token",
+            content =
+                @Content(
+                    mediaType = "application/json",
+                    examples =
+                        @ExampleObject(
+                            name = "Invalid Refresh Token",
+                            value =
+                                "{\"error\": \"INVALID_REFRESH_TOKEN\", \"message\": \"Invalid or"
+                                    + " revoked refresh token\", \"status\": 401}")))
+      })
   @PostMapping("/refresh")
-  public ResponseEntity<Credentials> handleRefreshToken(@RequestBody RefreshRequest payload) {
+  public ResponseEntity<Credentials> handleRefreshToken(@RequestBody RefreshRequest payload)
+      throws RefreshTokenException, IOException {
     try {
       var token = authService.refreshCredentials(payload.token());
       return ResponseEntity.ok().body(token);
-    } catch (Exception e) {
-      return ResponseEntity.badRequest().build();
+    } catch (GeneralSecurityException e) {
+      throw new RefreshTokenException("Invalid or revoked refresh token");
     }
   }
 }
