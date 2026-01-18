@@ -1,6 +1,7 @@
 package dev.ghidora.utabridgeserver.exceptions;
 
 import dev.ghidora.utabridgeserver.dtos.ErrorResponse;
+import dev.ghidora.utabridgeserver.enums.ErrorType;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -18,7 +19,7 @@ public class GlobalExceptionHandler {
       InvalidTokenException ex, HttpServletRequest request) {
     ErrorResponse error =
         new ErrorResponse(
-            "INVALID_TOKEN",
+            ErrorType.INVALID_TOKEN,
             ex.getMessage(),
             HttpStatus.UNAUTHORIZED.value(),
             request.getRequestURI());
@@ -30,7 +31,7 @@ public class GlobalExceptionHandler {
       RefreshTokenException ex, HttpServletRequest request) {
     ErrorResponse error =
         new ErrorResponse(
-            "INVALID_REFRESH_TOKEN",
+            ErrorType.INVALID_REFRESH_TOKEN,
             ex.getMessage(),
             HttpStatus.UNAUTHORIZED.value(),
             request.getRequestURI());
@@ -42,7 +43,7 @@ public class GlobalExceptionHandler {
       ValidationException ex, HttpServletRequest request) {
     ErrorResponse error =
         new ErrorResponse(
-            "VALIDATION_ERROR",
+            ErrorType.VALIDATION_ERROR,
             ex.getMessage(),
             HttpStatus.BAD_REQUEST.value(),
             request.getRequestURI());
@@ -59,7 +60,10 @@ public class GlobalExceptionHandler {
             .orElse("Validation failed");
     ErrorResponse error =
         new ErrorResponse(
-            "VALIDATION_ERROR", message, HttpStatus.BAD_REQUEST.value(), request.getRequestURI());
+            ErrorType.VALIDATION_ERROR,
+            message,
+            HttpStatus.BAD_REQUEST.value(),
+            request.getRequestURI());
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
   }
 
@@ -68,7 +72,7 @@ public class GlobalExceptionHandler {
       GeneralSecurityException ex, HttpServletRequest request) {
     ErrorResponse error =
         new ErrorResponse(
-            "INVALID_TOKEN",
+            ErrorType.INVALID_TOKEN,
             ex.getMessage(),
             HttpStatus.UNAUTHORIZED.value(),
             request.getRequestURI());
@@ -80,7 +84,7 @@ public class GlobalExceptionHandler {
       IOException ex, HttpServletRequest request) {
     ErrorResponse error =
         new ErrorResponse(
-            "INTERNAL_ERROR",
+            ErrorType.INTERNAL_ERROR,
             "An internal error occurred",
             HttpStatus.INTERNAL_SERVER_ERROR.value(),
             request.getRequestURI());
@@ -91,7 +95,7 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleGeneric(Exception ex, HttpServletRequest request) {
     ErrorResponse error =
         new ErrorResponse(
-            "INTERNAL_ERROR",
+            ErrorType.INTERNAL_ERROR,
             "An internal error occurred",
             HttpStatus.INTERNAL_SERVER_ERROR.value(),
             request.getRequestURI());
