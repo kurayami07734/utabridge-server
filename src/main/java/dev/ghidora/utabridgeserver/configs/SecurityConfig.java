@@ -1,6 +1,7 @@
 package dev.ghidora.utabridgeserver.configs;
 
 import dev.ghidora.utabridgeserver.utilities.JwtAuthenticationFilter;
+import dev.ghidora.utabridgeserver.utilities.RateLimitFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,9 +16,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfig {
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
+  private final RateLimitFilter rateLimitFilter;
 
-  public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+  public SecurityConfig(
+      JwtAuthenticationFilter jwtAuthenticationFilter, RateLimitFilter rateLimitFilter) {
     this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    this.rateLimitFilter = rateLimitFilter;
   }
 
   @Bean
@@ -42,11 +46,14 @@ public class SecurityConfig {
             auth ->
                 auth.requestMatchers("/api/auth/login", "/api/health", "/api/auth/refresh")
                     .permitAll()
+                    .requestMatchers("/api/dev/**")
+                    .permitAll()
                     .requestMatchers("/api/docs.html", "/v3/api-docs/**", "/api/swagger-ui/**")
                     .permitAll()
                     .anyRequest()
                     .authenticated())
-        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+        .addFilterBefore(rateLimitFilter, JwtAuthenticationFilter.class);
 
     return http.build();
   }
