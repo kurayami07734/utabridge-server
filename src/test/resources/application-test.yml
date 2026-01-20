@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: utabridge-server
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driverClassName: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+gcp:
+  client-id: test-client-id
+  project-id: test-project-id
+
+jwt:
+  secret: dGVzdC1zZWNyZXQta2V5LW11c3QtYmUtbG9uZy1lbm91Z2gtZm9yLWhzMjU2LWFsZ29yaXRobS1hdC1sZWFzdC0zMi1ieXRlcw==
+  validity-duration-ms: 3600000
