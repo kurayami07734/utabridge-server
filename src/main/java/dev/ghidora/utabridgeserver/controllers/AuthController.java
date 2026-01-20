@@ -65,7 +65,8 @@ public class AuthController {
                             name = "Success",
                             value =
                                 "{\"authToken\": \"eyJhbGciOiJIUzI1NiIs...\", \"refreshToken\":"
-                                    + " \"abc123...\"}"))),
+                                    + " \"abc123...\", \"user\": {\"name\": \"John Doe\","
+                                    + " \"pictureUrl\": \"https://example.com/avatar.jpg\"}}"))),
         @ApiResponse(
             responseCode = "400",
             description = "Invalid or expired identity token",
@@ -80,11 +81,11 @@ public class AuthController {
                                     + " identity token\", \"status\": 401}")))
       })
   @PostMapping("/login")
-  public ResponseEntity<Credentials> handleLogin(@RequestBody LoginRequest payload)
+  public ResponseEntity<?> handleLogin(@RequestBody LoginRequest payload)
       throws InvalidTokenException, IOException {
     try {
-      var credentials = authService.getLoginCredentials(payload.token());
-      return ResponseEntity.ok().body(credentials);
+      var loginResponse = authService.login(payload.token());
+      return ResponseEntity.ok().body(loginResponse);
     } catch (GeneralSecurityException e) {
       throw new InvalidTokenException("Invalid or expired identity token");
     }

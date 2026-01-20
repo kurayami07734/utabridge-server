@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import dev.ghidora.utabridgeserver.dtos.Credentials;
+import dev.ghidora.utabridgeserver.dtos.LoginResponse;
 import dev.ghidora.utabridgeserver.enums.IdentityProvider;
 import dev.ghidora.utabridgeserver.models.RefreshToken;
 import dev.ghidora.utabridgeserver.models.User;
@@ -32,30 +33,37 @@ class AuthServiceTest {
   @InjectMocks private AuthService authService;
 
   @Test
-  void getLoginCredentials_ValidToken_ReturnsCredentials() throws Exception {
+  void login_ValidToken_ReturnsLoginResponse() throws Exception {
     // Arrange
     String mockToken = "google-token";
     String email = "test@example.com";
-    var mockIdentity = new IdentityTokenVerifier.VerifiedUser("Test User", email, "url", "123");
+    String name = "Test User";
+    String pictureUrl = "https://example.com/avatar.jpg";
+    var mockIdentity = new IdentityTokenVerifier.VerifiedUser(name, email, pictureUrl, "123");
 
     when(identityTokenVerifier.verifyToken(mockToken)).thenReturn(mockIdentity);
     when(identityTokenVerifier.getProvider()).thenReturn(IdentityProvider.GOOGLE);
 
     User user = new User();
     ReflectionTestUtils.setField(user, "id", 1L);
+    ReflectionTestUtils.setField(user, "name", name);
+    ReflectionTestUtils.setField(user, "pictureUrl", pictureUrl);
 
     when(userService.getOrCreateUser(
-            eq(email), eq("Test User"), eq("url"), eq("123"), eq(IdentityProvider.GOOGLE)))
+            eq(email), eq(name), eq(pictureUrl), eq("123"), eq(IdentityProvider.GOOGLE)))
         .thenReturn(user);
 
     when(jwtService.generateToken("1")).thenReturn("signed-jwt");
 
     // Act
-    Credentials result = authService.getLoginCredentials(mockToken);
+    LoginResponse result = authService.login(mockToken);
 
     // Assert
     assertThat(result.authToken()).isEqualTo("signed-jwt");
     assertThat(result.refreshToken()).isNotEmpty();
+    assertThat(result.user()).isNotNull();
+    assertThat(result.user().name()).isEqualTo(name);
+    assertThat(result.user().pictureUrl()).isEqualTo(pictureUrl);
     verify(refreshTokenRepository).save(any(RefreshToken.class));
   }
 

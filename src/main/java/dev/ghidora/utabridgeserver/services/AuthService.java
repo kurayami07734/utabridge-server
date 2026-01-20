@@ -1,6 +1,8 @@
 package dev.ghidora.utabridgeserver.services;
 
 import dev.ghidora.utabridgeserver.dtos.Credentials;
+import dev.ghidora.utabridgeserver.dtos.LoginResponse;
+import dev.ghidora.utabridgeserver.dtos.UserDto;
 import dev.ghidora.utabridgeserver.models.RefreshToken;
 import dev.ghidora.utabridgeserver.models.User;
 import dev.ghidora.utabridgeserver.repositories.RefreshTokenRepository;
@@ -54,15 +56,15 @@ public class AuthService {
   }
 
   /**
-   * Creates a JWT for the user NOTE: This method will create a new user if not already present.
+   * Authenticates user and returns login response. NOTE: This method will create a new user if not
+   * already present.
    *
    * @param token third party token
-   * @return Credentials
+   * @return LoginResponse containing tokens and user details
    * @throws GeneralSecurityException if security error occurs
    * @throws IOException if io error occurs
    */
-  public Credentials getLoginCredentials(String token)
-      throws GeneralSecurityException, IOException {
+  public LoginResponse login(String token) throws GeneralSecurityException, IOException {
     var verifiedUser = identityTokenVerifier.verifyToken(token);
 
     User user =
@@ -75,8 +77,9 @@ public class AuthService {
 
     var authToken = jwtService.generateToken(user.getId().toString());
     var refreshToken = getRefreshToken(user);
+    var userDto = new UserDto(user.getName(), user.getPictureUrl());
 
-    return new Credentials(authToken, refreshToken);
+    return new LoginResponse(authToken, refreshToken, userDto);
   }
 
   /**

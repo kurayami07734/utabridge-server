@@ -9,6 +9,8 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standal
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.ghidora.utabridgeserver.dtos.Credentials;
+import dev.ghidora.utabridgeserver.dtos.LoginResponse;
+import dev.ghidora.utabridgeserver.dtos.UserDto;
 import dev.ghidora.utabridgeserver.exceptions.GlobalExceptionHandler;
 import dev.ghidora.utabridgeserver.services.AuthService;
 import java.security.GeneralSecurityException;
@@ -33,15 +35,18 @@ class AuthControllerTest {
   }
 
   @Test
-  void handleLogin_ValidToken_ReturnsCredentials() throws Exception {
+  void handleLogin_ValidToken_ReturnsLoginResponse() throws Exception {
     // Arrange
     String tokenIn = "valid-google-token";
     String authToken = "generated-jwt-token";
     String refreshToken = "refresh-token";
+    String userName = "Test User";
+    String userPictureUrl = "https://example.com/avatar.jpg";
     AuthController.LoginRequest request = new AuthController.LoginRequest(tokenIn);
+    UserDto userDto = new UserDto(userName, userPictureUrl);
+    LoginResponse loginResponse = new LoginResponse(authToken, refreshToken, userDto);
 
-    given(authService.getLoginCredentials(tokenIn))
-        .willReturn(new Credentials(authToken, refreshToken));
+    given(authService.login(tokenIn)).willReturn(loginResponse);
 
     // Act & Assert
     mockMvc
@@ -51,7 +56,9 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.authToken").value(authToken))
-        .andExpect(jsonPath("$.refreshToken").value(refreshToken));
+        .andExpect(jsonPath("$.refreshToken").value(refreshToken))
+        .andExpect(jsonPath("$.user.name").value(userName))
+        .andExpect(jsonPath("$.user.pictureUrl").value(userPictureUrl));
   }
 
   @Test
@@ -60,8 +67,7 @@ class AuthControllerTest {
     String tokenIn = "invalid-token";
     AuthController.LoginRequest request = new AuthController.LoginRequest(tokenIn);
 
-    given(authService.getLoginCredentials(tokenIn))
-        .willThrow(new GeneralSecurityException("Invalid token"));
+    given(authService.login(tokenIn)).willThrow(new GeneralSecurityException("Invalid token"));
 
     // Act & Assert
     mockMvc
