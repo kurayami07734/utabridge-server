@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/** Controller for development-only testing endpoints. */
 @RestController
 @RequestMapping("/api/dev")
 @Tag(name = "Development", description = "Development-only endpoints for testing")
@@ -25,6 +26,13 @@ public class DevController {
   private final JwtService jwtService;
   private final RefreshTokenRepository refreshTokenRepository;
 
+  /**
+   * Constructs a DevController.
+   *
+   * @param userService User service.
+   * @param jwtService JWT service.
+   * @param refreshTokenRepository Refresh token repository.
+   */
   public DevController(
       UserService userService,
       JwtService jwtService,
@@ -34,25 +42,29 @@ public class DevController {
     this.refreshTokenRepository = refreshTokenRepository;
   }
 
+  /** Request payload for generating test tokens. */
   public record DevTokenRequest(String email, String name) {}
 
+  /**
+   * Generates test authentication tokens for the given user.
+   *
+   * @param request Request containing user email and name.
+   * @return Credentials with generated tokens.
+   */
   @Operation(summary = "Generate test tokens (development only)")
   @PostMapping("/token")
   public Credentials generateToken(@RequestBody DevTokenRequest request) {
     User user =
         userService.getOrCreateUser(
             request.email(), request.name(), null, "dev-test-provider", IdentityProvider.GOOGLE);
-
-    String authToken = jwtService.generateToken(user.getId().toString());
     String refreshTokenValue = RefreshTokenGenerator.generate();
     String hashedToken = Sha256HashGenerator.hashString(refreshTokenValue);
-
     RefreshToken refreshToken = new RefreshToken();
     refreshToken.setUser(user);
     refreshToken.setHashedToken(hashedToken);
     refreshToken.setExpiresAt(Instant.now().plusSeconds(86400));
     refreshTokenRepository.save(refreshToken);
-
+    String authToken = jwtService.generateToken(user.getId().toString());
     return new Credentials(authToken, refreshTokenValue);
   }
 }

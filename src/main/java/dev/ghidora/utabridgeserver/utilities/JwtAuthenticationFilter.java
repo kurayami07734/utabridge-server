@@ -13,14 +13,26 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+/** Filter for JWT authentication. */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
   private final JwtService jwtService;
 
+  /**
+   * Constructs a JwtAuthenticationFilter.
+   *
+   * @param jwtService JWT service.
+   */
   public JwtAuthenticationFilter(JwtService jwtService) {
     this.jwtService = jwtService;
   }
 
+  /**
+   * Extracts JWT token from Authorization header.
+   *
+   * @param request HTTP request.
+   * @return Optional containing JWT token if present.
+   */
   private Optional<String> extractJwt(HttpServletRequest request) {
     String authHeader = request.getHeader("Authorization");
     if (authHeader == null || !authHeader.startsWith("Bearer ")) {
