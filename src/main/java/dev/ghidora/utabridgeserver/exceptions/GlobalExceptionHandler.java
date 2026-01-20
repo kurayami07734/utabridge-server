@@ -11,9 +11,17 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+/** Global exception handler for the application. */
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
+  /**
+   * Handles InvalidTokenException.
+   *
+   * @param ex The exception.
+   * @param request The HTTP request.
+   * @return Error response.
+   */
   @ExceptionHandler(InvalidTokenException.class)
   public ResponseEntity<ErrorResponse> handleInvalidToken(
       InvalidTokenException ex, HttpServletRequest request) {
@@ -26,6 +34,13 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
   }
 
+  /**
+   * Handles RefreshTokenException.
+   *
+   * @param ex The exception.
+   * @param request The HTTP request.
+   * @return Error response.
+   */
   @ExceptionHandler(RefreshTokenException.class)
   public ResponseEntity<ErrorResponse> handleRefreshToken(
       RefreshTokenException ex, HttpServletRequest request) {
@@ -38,6 +53,13 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
   }
 
+  /**
+   * Handles ValidationException.
+   *
+   * @param ex The exception.
+   * @param request The HTTP request.
+   * @return Error response.
+   */
   @ExceptionHandler(ValidationException.class)
   public ResponseEntity<ErrorResponse> handleValidation(
       ValidationException ex, HttpServletRequest request) {
@@ -50,6 +72,13 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
   }
 
+  /**
+   * Handles MethodArgumentNotValidException.
+   *
+   * @param ex The exception.
+   * @param request The HTTP request.
+   * @return Error response.
+   */
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(
       MethodArgumentNotValidException ex, HttpServletRequest request) {
@@ -67,6 +96,13 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
   }
 
+  /**
+   * Handles GeneralSecurityException.
+   *
+   * @param ex The exception.
+   * @param request The HTTP request.
+   * @return Error response.
+   */
   @ExceptionHandler(GeneralSecurityException.class)
   public ResponseEntity<ErrorResponse> handleGeneralSecurity(
       GeneralSecurityException ex, HttpServletRequest request) {
@@ -79,6 +115,13 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
   }
 
+  /**
+   * Handles IOException.
+   *
+   * @param ex The exception.
+   * @param request The HTTP request.
+   * @return Error response.
+   */
   @ExceptionHandler(IOException.class)
   public ResponseEntity<ErrorResponse> handleIoException(
       IOException ex, HttpServletRequest request) {
@@ -91,6 +134,13 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
   }
 
+  /**
+   * Handles generic Exception.
+   *
+   * @param ex The exception.
+   * @param request The HTTP request.
+   * @return Error response.
+   */
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorResponse> handleGeneric(Exception ex, HttpServletRequest request) {
     ErrorResponse error =

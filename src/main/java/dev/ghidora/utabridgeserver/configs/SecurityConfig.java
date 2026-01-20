@@ -12,18 +12,32 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/** Security configuration for the application. */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
   private final RateLimitFilter rateLimitFilter;
 
+  /**
+   * Constructs a SecurityConfig.
+   *
+   * @param jwtAuthenticationFilter JWT authentication filter.
+   * @param rateLimitFilter Rate limiting filter.
+   */
   public SecurityConfig(
       JwtAuthenticationFilter jwtAuthenticationFilter, RateLimitFilter rateLimitFilter) {
     this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     this.rateLimitFilter = rateLimitFilter;
   }
 
+  /**
+   * Configures the security filter chain.
+   *
+   * @param http HttpSecurity configuration.
+   * @return Configured SecurityFilterChain.
+   * @throws Exception if configuration fails.
+   */
   @Bean
   SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)

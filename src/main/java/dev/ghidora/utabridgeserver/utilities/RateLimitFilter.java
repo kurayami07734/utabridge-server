@@ -17,11 +17,18 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+/** Filter for rate limiting requests. */
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
   private final RateLimiterRegistry rateLimiterRegistry;
   private final ObjectMapper objectMapper;
 
+  /**
+   * Constructs a RateLimitFilter.
+   *
+   * @param rateLimiterRegistry Rate limiter registry.
+   * @param objectMapper Object mapper for JSON responses.
+   */
   public RateLimitFilter(RateLimiterRegistry rateLimiterRegistry, ObjectMapper objectMapper) {
     this.rateLimiterRegistry = rateLimiterRegistry;
     this.objectMapper = objectMapper;
