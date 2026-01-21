@@ -54,7 +54,7 @@ public class GoogleTokenVerifier implements IdentityTokenVerifier {
     GoogleIdToken.Payload payload = idToken.getPayload();
 
     return new VerifiedUser(
-        (String) payload.get("given_name"),
+        (String) payload.get("name"),
         payload.getEmail(),
         (String) payload.get("picture"),
         payload.getSubject());
