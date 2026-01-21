@@ -8,12 +8,14 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Repository for User entity. */
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
   Optional<User> findByEmail(String email);
 
+  @Transactional
   @Modifying
   @Query("UPDATE User u SET u.lastActiveAt = :time WHERE u.id = :id")
   void updateLastActiveAt(@Param("id") Long id, @Param("time") Instant time);

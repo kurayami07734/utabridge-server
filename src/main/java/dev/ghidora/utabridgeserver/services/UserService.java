@@ -3,6 +3,7 @@ package dev.ghidora.utabridgeserver.services;
 import dev.ghidora.utabridgeserver.enums.IdentityProvider;
 import dev.ghidora.utabridgeserver.models.User;
 import dev.ghidora.utabridgeserver.repositories.UserRepository;
+import java.time.Instant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +40,7 @@ public class UserService {
               user.setPictureUrl(pictureUrl);
               user.setProviderId(providerId);
               user.setProvider(provider);
+              user.setLastActiveAt(Instant.now());
               return userRepository.save(user);
             });
   }
