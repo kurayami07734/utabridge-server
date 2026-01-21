@@ -9,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Instant;
 
 /** User entity. */
 @Entity
@@ -33,6 +34,9 @@ public class User {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private IdentityProvider provider;
+
+  @Column(nullable = true)
+  private Instant lastActiveAt;
 
   public Long getId() {
     return id;
@@ -76,5 +80,13 @@ public class User {
 
   public void setProvider(IdentityProvider provider) {
     this.provider = provider;
+  }
+
+  public Instant getLastActiveAt() {
+    return lastActiveAt;
+  }
+
+  public void setLastActiveAt(Instant lastActiveAt) {
+    this.lastActiveAt = lastActiveAt;
   }
 }

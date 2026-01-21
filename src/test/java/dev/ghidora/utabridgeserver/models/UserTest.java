@@ -3,6 +3,7 @@ package dev.ghidora.utabridgeserver.models;
 import static org.junit.jupiter.api.Assertions.*;
 
 import dev.ghidora.utabridgeserver.enums.IdentityProvider;
+import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
 class UserTest {
@@ -64,6 +65,23 @@ class UserTest {
   }
 
   @Test
+  void setLastActiveAt_UpdatesValue() {
+    User user = new User();
+    Instant now = Instant.now();
+    user.setLastActiveAt(now);
+
+    assertEquals(now, user.getLastActiveAt());
+  }
+
+  @Test
+  void setLastActiveAt_CanBeNull() {
+    User user = new User();
+    user.setLastActiveAt(null);
+
+    assertNull(user.getLastActiveAt());
+  }
+
+  @Test
   void constructor_InitializesFields() {
     User user = new User();
 
@@ -73,21 +91,25 @@ class UserTest {
     assertNull(user.getPictureUrl());
     assertNull(user.getProviderId());
     assertNull(user.getProvider());
+    assertNull(user.getLastActiveAt());
   }
 
   @Test
   void allSetters_UpdateValues() {
     User user = new User();
+    Instant now = Instant.now();
     user.setEmail("test@example.com");
     user.setName("Test User");
     user.setPictureUrl("https://example.com/avatar.jpg");
     user.setProviderId("12345");
     user.setProvider(IdentityProvider.GOOGLE);
+    user.setLastActiveAt(now);
 
     assertEquals("test@example.com", user.getEmail());
     assertEquals("Test User", user.getName());
     assertEquals("https://example.com/avatar.jpg", user.getPictureUrl());
     assertEquals("12345", user.getProviderId());
     assertEquals(IdentityProvider.GOOGLE, user.getProvider());
+    assertEquals(now, user.getLastActiveAt());
   }
 }
