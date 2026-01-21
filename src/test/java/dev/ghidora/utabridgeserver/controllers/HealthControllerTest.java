@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import dev.ghidora.utabridgeserver.repositories.UserRepository;
 import dev.ghidora.utabridgeserver.utilities.JwtService;
 import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,11 @@ class HealthControllerTestConfig {
   @Bean
   RateLimiterRegistry rateLimiterRegistry() {
     return mock(RateLimiterRegistry.class);
+  }
+
+  @Bean
+  UserRepository userRepository() {
+    return mock(UserRepository.class);
   }
 }
 

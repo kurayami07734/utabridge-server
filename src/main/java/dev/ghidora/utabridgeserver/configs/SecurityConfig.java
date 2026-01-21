@@ -1,5 +1,6 @@
 package dev.ghidora.utabridgeserver.configs;
 
+import dev.ghidora.utabridgeserver.utilities.ActivityTrackingFilter;
 import dev.ghidora.utabridgeserver.utilities.JwtAuthenticationFilter;
 import dev.ghidora.utabridgeserver.utilities.RateLimitFilter;
 import jakarta.servlet.http.HttpServletResponse;
@@ -18,17 +19,15 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
   private final RateLimitFilter rateLimitFilter;
+  private final ActivityTrackingFilter activityTrackingFilter;
 
-  /**
-   * Constructs a SecurityConfig.
-   *
-   * @param jwtAuthenticationFilter JWT authentication filter.
-   * @param rateLimitFilter Rate limiting filter.
-   */
   public SecurityConfig(
-      JwtAuthenticationFilter jwtAuthenticationFilter, RateLimitFilter rateLimitFilter) {
+      JwtAuthenticationFilter jwtAuthenticationFilter,
+      RateLimitFilter rateLimitFilter,
+      ActivityTrackingFilter activityTrackingFilter) {
     this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     this.rateLimitFilter = rateLimitFilter;
+    this.activityTrackingFilter = activityTrackingFilter;
   }
 
   /**
@@ -67,7 +66,8 @@ public class SecurityConfig {
                     .anyRequest()
                     .authenticated())
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-        .addFilterBefore(rateLimitFilter, JwtAuthenticationFilter.class);
+        .addFilterBefore(rateLimitFilter, JwtAuthenticationFilter.class)
+        .addFilterAfter(activityTrackingFilter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();
   }
