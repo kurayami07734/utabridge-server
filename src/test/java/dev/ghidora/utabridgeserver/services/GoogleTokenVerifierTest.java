@@ -43,7 +43,7 @@ class GoogleTokenVerifierTest {
 
     Payload payload = new Payload();
     payload.setEmail(email);
-    payload.set("given_name", name);
+    payload.set("name", name);
     payload.set("picture", pictureUrl);
     payload.setSubject(subjectId);
 
