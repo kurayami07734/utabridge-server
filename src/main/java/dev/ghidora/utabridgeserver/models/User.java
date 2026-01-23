@@ -1,15 +1,11 @@
 package dev.ghidora.utabridgeserver.models;
 
 import dev.ghidora.utabridgeserver.enums.IdentityProvider;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import dev.ghidora.utabridgeserver.enums.UserPreferenceType;
+import jakarta.persistence.*;
 import java.time.Instant;
+import java.util.EnumMap;
+import java.util.Map;
 
 /** User entity. */
 @Entity
@@ -37,6 +33,13 @@ public class User {
 
   @Column(nullable = true)
   private Instant lastActiveAt;
+
+  @ElementCollection(fetch = FetchType.LAZY)
+  @CollectionTable(name = "user_preferences", joinColumns = @JoinColumn(name = "user_id"))
+  @MapKeyEnumerated(EnumType.STRING)
+  @MapKeyColumn(name = "key")
+  @Column(name = "value")
+  private Map<UserPreferenceType, String> preferences = new EnumMap<>(UserPreferenceType.class);
 
   public Long getId() {
     return id;
@@ -84,6 +87,27 @@ public class User {
 
   public Instant getLastActiveAt() {
     return lastActiveAt;
+  }
+
+  public Map<UserPreferenceType, String> getPreferences() {
+    return preferences;
+  }
+
+  public void setPreferences(Map<UserPreferenceType, String> preferences) {
+    this.preferences = preferences;
+  }
+
+  public void addPreference(UserPreferenceType key, String value) throws IllegalArgumentException {
+    if (!key.isValid(value)) {
+      throw new IllegalArgumentException("Invalid value '" + value + "' for preference " + key);
+    }
+    this.preferences.put(key, value);
+  }
+
+  public void initializeDefaultPreferences() {
+    for (UserPreferenceType pref : UserPreferenceType.values()) {
+      preferences.putIfAbsent(pref, pref.getDefaultValue());
+    }
   }
 
   public void setLastActiveAt(Instant lastActiveAt) {
