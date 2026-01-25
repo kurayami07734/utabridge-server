@@ -2,7 +2,20 @@ package dev.ghidora.utabridgeserver.models;
 
 import dev.ghidora.utabridgeserver.enums.IdentityProvider;
 import dev.ghidora.utabridgeserver.enums.UserPreferenceType;
-import jakarta.persistence.*;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.MapKeyColumn;
+import jakarta.persistence.MapKeyEnumerated;
+import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.EnumMap;
 import java.util.Map;
@@ -37,8 +50,8 @@ public class User {
   @ElementCollection(fetch = FetchType.LAZY)
   @CollectionTable(name = "user_preferences", joinColumns = @JoinColumn(name = "user_id"))
   @MapKeyEnumerated(EnumType.STRING)
-  @MapKeyColumn(name = "key")
-  @Column(name = "value")
+  @MapKeyColumn(name = "preference_key")
+  @Column(name = "preference_value")
   private Map<UserPreferenceType, String> preferences = new EnumMap<>(UserPreferenceType.class);
 
   public Long getId() {
@@ -97,6 +110,13 @@ public class User {
     this.preferences = preferences;
   }
 
+  /**
+   * Adds a preference to the user.
+   *
+   * @param key The preference key.
+   * @param value The preference value.
+   * @throws IllegalArgumentException if the value is invalid for the given key.
+   */
   public void addPreference(UserPreferenceType key, String value) throws IllegalArgumentException {
     if (!key.isValid(value)) {
       throw new IllegalArgumentException("Invalid value '" + value + "' for preference " + key);
@@ -104,6 +124,7 @@ public class User {
     this.preferences.put(key, value);
   }
 
+  /** Initializes default preferences for the user if they are not already set. */
   public void initializeDefaultPreferences() {
     for (UserPreferenceType pref : UserPreferenceType.values()) {
       preferences.putIfAbsent(pref, pref.getDefaultValue());
