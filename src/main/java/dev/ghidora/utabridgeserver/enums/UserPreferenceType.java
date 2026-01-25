@@ -2,6 +2,7 @@ package dev.ghidora.utabridgeserver.enums;
 
 import java.util.Set;
 
+/** Defines the types of user preferences available in the application. */
 public enum UserPreferenceType {
   PRIMARY_TEXT_TYPE("ROMANIZATION", Set.of("ROMANIZATION", "TRANSLATION"));
 
@@ -18,6 +19,6 @@ public enum UserPreferenceType {
   }
 
   public boolean isValid(String value) {
-    return validValues.contains(value);
+    return value != null && validValues.contains(value);
   }
 }
