@@ -73,6 +73,63 @@ public class GlobalExceptionHandler {
   }
 
   /**
+   * Handles ResourceNotFoundException.
+   *
+   * @param ex The exception.
+   * @param request The HTTP request.
+   * @return Error response.
+   */
+  @ExceptionHandler(ResourceNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleResourceNotFound(
+      ResourceNotFoundException ex, HttpServletRequest request) {
+    ErrorResponse error =
+        new ErrorResponse(
+            ErrorType.RESOURCE_NOT_FOUND,
+            ex.getMessage(),
+            HttpStatus.NOT_FOUND.value(),
+            request.getRequestURI());
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+  }
+
+  /**
+   * Handles ForbiddenOperationException.
+   *
+   * @param ex The exception.
+   * @param request The HTTP request.
+   * @return Error response.
+   */
+  @ExceptionHandler(ForbiddenOperationException.class)
+  public ResponseEntity<ErrorResponse> handleForbiddenOperation(
+      ForbiddenOperationException ex, HttpServletRequest request) {
+    ErrorResponse error =
+        new ErrorResponse(
+            ErrorType.FORBIDDEN_OPERATION,
+            ex.getMessage(),
+            HttpStatus.FORBIDDEN.value(),
+            request.getRequestURI());
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+  }
+
+  /**
+   * Handles IllegalArgumentException.
+   *
+   * @param ex The exception.
+   * @param request The HTTP request.
+   * @return Error response.
+   */
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity<ErrorResponse> handleIllegalArgument(
+      IllegalArgumentException ex, HttpServletRequest request) {
+    ErrorResponse error =
+        new ErrorResponse(
+            ErrorType.VALIDATION_ERROR,
+            ex.getMessage(),
+            HttpStatus.BAD_REQUEST.value(),
+            request.getRequestURI());
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+  }
+
+  /**
    * Handles MethodArgumentNotValidException.
    *
    * @param ex The exception.
