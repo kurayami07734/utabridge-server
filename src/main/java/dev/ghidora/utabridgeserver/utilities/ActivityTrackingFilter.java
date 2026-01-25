@@ -15,6 +15,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+/**
+ * Filter to track user activity and update their last active timestamp in the database. This filter
+ * is designed to run once per request for authenticated users, and it throttles updates to avoid
+ * excessive database writes. It also excludes public endpoints from tracking.
+ */
 @Component
 public class ActivityTrackingFilter extends OncePerRequestFilter {
   private static final Duration THROTTLE_DURATION = Duration.ofMinutes(5);

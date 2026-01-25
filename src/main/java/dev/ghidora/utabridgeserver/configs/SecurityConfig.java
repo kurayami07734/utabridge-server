@@ -21,6 +21,13 @@ public class SecurityConfig {
   private final RateLimitFilter rateLimitFilter;
   private final ActivityTrackingFilter activityTrackingFilter;
 
+  /**
+   * Constructs a new SecurityConfig.
+   *
+   * @param jwtAuthenticationFilter The JWT authentication filter.
+   * @param rateLimitFilter The rate limit filter.
+   * @param activityTrackingFilter The activity tracking filter.
+   */
   public SecurityConfig(
       JwtAuthenticationFilter jwtAuthenticationFilter,
       RateLimitFilter rateLimitFilter,
