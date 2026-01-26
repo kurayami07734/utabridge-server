@@ -13,6 +13,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Authentication", description = "Endpoints for user authentication")
 public class AuthController {
   private final AuthService authService;
+  private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
   @Autowired
   public AuthController(AuthService authService) {
@@ -83,8 +86,10 @@ public class AuthController {
   @PostMapping("/login")
   public ResponseEntity<?> handleLogin(@RequestBody LoginRequest payload)
       throws InvalidTokenException, IOException {
+    logger.info("Login attempt received");
     try {
       var loginResponse = authService.login(payload.token());
+      logger.info("Login successful for user: {}", loginResponse.user());
       return ResponseEntity.ok().body(loginResponse);
     } catch (GeneralSecurityException e) {
       throw new InvalidTokenException("Invalid or expired identity token");
@@ -141,8 +146,10 @@ public class AuthController {
   @PostMapping("/refresh")
   public ResponseEntity<Credentials> handleRefreshToken(@RequestBody RefreshRequest payload)
       throws RefreshTokenException, IOException {
+    logger.info("Token refresh attempt received");
     try {
       var token = authService.refreshCredentials(payload.token());
+      logger.info("Token refresh successful");
       return ResponseEntity.ok().body(token);
     } catch (GeneralSecurityException e) {
       throw new RefreshTokenException("Invalid or revoked refresh token");

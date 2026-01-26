@@ -7,6 +7,8 @@ import com.google.cloud.translate.v3.LocationName;
 import com.google.cloud.translate.v3.RomanizeTextRequest;
 import com.google.cloud.translate.v3.RomanizeTextResponse;
 import com.google.cloud.translate.v3.TranslationServiceClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
@@ -20,6 +22,7 @@ public class GoogleTranslateService implements TranslationService {
   private final Translate translate;
   private final TranslationServiceClient translationServiceClient;
   private final String projectId;
+  private static final Logger logger = LoggerFactory.getLogger(GoogleTranslateService.class);
 
   /**
    * Constructs a GoogleTranslateService.
@@ -40,16 +43,23 @@ public class GoogleTranslateService implements TranslationService {
 
   @Override
   public String translateText(String text, String sourceLanguage, String targetLanguage) {
+    logger.debug(
+        "Calling Google Translate API to translate text from {} to {}",
+        sourceLanguage,
+        targetLanguage);
     Translation translation =
         translate.translate(
             text,
             TranslateOption.sourceLanguage(sourceLanguage),
             TranslateOption.targetLanguage(targetLanguage));
-    return translation.getTranslatedText();
+    String translatedText = translation.getTranslatedText();
+    logger.debug("Successfully translated text. Result: '{}'", translatedText);
+    return translatedText;
   }
 
   @Override
   public String romanizeText(String text, String sourceLanguage) {
+    logger.debug("Calling Google Translate API to romanize text from {}", sourceLanguage);
     // Location is always "global" for this API
     LocationName parent = LocationName.of(projectId, "global");
 
@@ -62,6 +72,8 @@ public class GoogleTranslateService implements TranslationService {
 
     RomanizeTextResponse response = translationServiceClient.romanizeText(request);
 
-    return response.getRomanizations(0).getRomanizedText();
+    String romanizedText = response.getRomanizations(0).getRomanizedText();
+    logger.debug("Successfully romanized text. Result: '{}'", romanizedText);
+    return romanizedText;
   }
 }

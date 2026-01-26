@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
   Optional<RefreshToken> findByHashedToken(String hashedToken);
 
-  void deleteByExpiresAtBefore(Instant now);
+  long deleteByExpiresAtBefore(Instant now);
 
-  void deleteByIsRevokedTrue();
+  long deleteByIsRevokedTrue();
 }

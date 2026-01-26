@@ -5,6 +5,8 @@ import dev.ghidora.utabridgeserver.enums.ErrorType;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -14,6 +16,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 /** Global exception handler for the application. */
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+  private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
   /**
    * Handles InvalidTokenException.
@@ -25,6 +29,8 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(InvalidTokenException.class)
   public ResponseEntity<ErrorResponse> handleInvalidToken(
       InvalidTokenException ex, HttpServletRequest request) {
+    logger.warn(
+        "Invalid token error: {} for request URI: {}", ex.getMessage(), request.getRequestURI());
     ErrorResponse error =
         new ErrorResponse(
             ErrorType.INVALID_TOKEN,
@@ -44,6 +50,10 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(RefreshTokenException.class)
   public ResponseEntity<ErrorResponse> handleRefreshToken(
       RefreshTokenException ex, HttpServletRequest request) {
+    logger.warn(
+        "Invalid refresh token error: {} for request URI: {}",
+        ex.getMessage(),
+        request.getRequestURI());
     ErrorResponse error =
         new ErrorResponse(
             ErrorType.INVALID_REFRESH_TOKEN,
@@ -63,6 +73,8 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(ValidationException.class)
   public ResponseEntity<ErrorResponse> handleValidation(
       ValidationException ex, HttpServletRequest request) {
+    logger.warn(
+        "Validation error: {} for request URI: {}", ex.getMessage(), request.getRequestURI());
     ErrorResponse error =
         new ErrorResponse(
             ErrorType.VALIDATION_ERROR,
@@ -82,6 +94,10 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(ResourceNotFoundException.class)
   public ResponseEntity<ErrorResponse> handleResourceNotFound(
       ResourceNotFoundException ex, HttpServletRequest request) {
+    logger.warn(
+        "Resource not found error: {} for request URI: {}",
+        ex.getMessage(),
+        request.getRequestURI());
     ErrorResponse error =
         new ErrorResponse(
             ErrorType.RESOURCE_NOT_FOUND,
@@ -101,6 +117,10 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(ForbiddenOperationException.class)
   public ResponseEntity<ErrorResponse> handleForbiddenOperation(
       ForbiddenOperationException ex, HttpServletRequest request) {
+    logger.warn(
+        "Forbidden operation error: {} for request URI: {}",
+        ex.getMessage(),
+        request.getRequestURI());
     ErrorResponse error =
         new ErrorResponse(
             ErrorType.FORBIDDEN_OPERATION,
@@ -120,6 +140,8 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(IllegalArgumentException.class)
   public ResponseEntity<ErrorResponse> handleIllegalArgument(
       IllegalArgumentException ex, HttpServletRequest request) {
+    logger.warn(
+        "Illegal argument error: {} for request URI: {}", ex.getMessage(), request.getRequestURI());
     ErrorResponse error =
         new ErrorResponse(
             ErrorType.VALIDATION_ERROR,
@@ -144,6 +166,10 @@ public class GlobalExceptionHandler {
             .map(error -> error.getField() + ": " + error.getDefaultMessage())
             .reduce((a, b) -> a + "; " + b)
             .orElse("Validation failed");
+    logger.warn(
+        "Method argument validation error: {} for request URI: {}",
+        message,
+        request.getRequestURI());
     ErrorResponse error =
         new ErrorResponse(
             ErrorType.VALIDATION_ERROR,
@@ -163,6 +189,8 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(GeneralSecurityException.class)
   public ResponseEntity<ErrorResponse> handleGeneralSecurity(
       GeneralSecurityException ex, HttpServletRequest request) {
+    logger.warn(
+        "General security error: {} for request URI: {}", ex.getMessage(), request.getRequestURI());
     ErrorResponse error =
         new ErrorResponse(
             ErrorType.INVALID_TOKEN,
@@ -182,6 +210,7 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(IOException.class)
   public ResponseEntity<ErrorResponse> handleIoException(
       IOException ex, HttpServletRequest request) {
+    logger.error("IO error: {} for request URI: {}", ex.getMessage(), request.getRequestURI(), ex);
     ErrorResponse error =
         new ErrorResponse(
             ErrorType.INTERNAL_ERROR,
@@ -200,6 +229,11 @@ public class GlobalExceptionHandler {
    */
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorResponse> handleGeneric(Exception ex, HttpServletRequest request) {
+    logger.error(
+        "An unexpected error occurred: {} for request URI: {}",
+        ex.getMessage(),
+        request.getRequestURI(),
+        ex);
     ErrorResponse error =
         new ErrorResponse(
             ErrorType.INTERNAL_ERROR,

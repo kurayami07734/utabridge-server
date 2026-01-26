@@ -8,6 +8,8 @@ import dev.ghidora.utabridgeserver.enums.IdentityProvider;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 @Primary
 public class GoogleTokenVerifier implements IdentityTokenVerifier {
   private final GoogleIdTokenVerifier verifier;
+  private static final Logger logger = LoggerFactory.getLogger(GoogleTokenVerifier.class);
 
   /**
    * Constructs a GoogleTokenVerifier.
@@ -27,11 +30,13 @@ public class GoogleTokenVerifier implements IdentityTokenVerifier {
    */
   public GoogleTokenVerifier(@Value("${gcp.client-id}") String clientId)
       throws GeneralSecurityException, IOException {
+    logger.info("Initializing GoogleTokenVerifier");
     verifier =
         new GoogleIdTokenVerifier.Builder(
                 GoogleNetHttpTransport.newTrustedTransport(), GsonFactory.getDefaultInstance())
             .setAudience(Collections.singletonList(clientId))
             .build();
+    logger.info("GoogleTokenVerifier initialized successfully");
   }
 
   @Override
@@ -41,6 +46,7 @@ public class GoogleTokenVerifier implements IdentityTokenVerifier {
 
   @Override
   public VerifiedUser verifyToken(String token) throws GeneralSecurityException, IOException {
+    logger.debug("Attempting to verify Google ID token");
     if (token == null) {
       throw new GeneralSecurityException("Token cannot be null");
     }
@@ -48,10 +54,15 @@ public class GoogleTokenVerifier implements IdentityTokenVerifier {
     GoogleIdToken idToken = verifier.verify(token);
 
     if (idToken == null) {
+      logger.warn("Google ID token is invalid or has expired");
       throw new GeneralSecurityException("Invalid google token!");
     }
 
     GoogleIdToken.Payload payload = idToken.getPayload();
+    logger.info(
+        "Successfully verified Google ID token for user: {}, provider ID: {}",
+        payload.getEmail(),
+        payload.getSubject());
 
     return new VerifiedUser(
         (String) payload.get("name"),

@@ -12,6 +12,8 @@ import dev.ghidora.utabridgeserver.utilities.Sha256HashGenerator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,6 +27,7 @@ public class DevController {
   private final UserService userService;
   private final JwtService jwtService;
   private final RefreshTokenRepository refreshTokenRepository;
+  private static final Logger logger = LoggerFactory.getLogger(DevController.class);
 
   /**
    * Constructs a DevController.
@@ -54,6 +57,7 @@ public class DevController {
   @Operation(summary = "Generate test tokens (development only)")
   @PostMapping("/token")
   public Credentials generateToken(@RequestBody DevTokenRequest request) {
+    logger.warn("Development-only endpoint '/api/dev/token' invoked. Request: {}", request);
     User user =
         userService.getOrCreateUser(
             request.email(), request.name(), null, "dev-test-provider", IdentityProvider.GOOGLE);
@@ -65,6 +69,7 @@ public class DevController {
     refreshToken.setExpiresAt(Instant.now().plusSeconds(86400));
     refreshTokenRepository.save(refreshToken);
     String authToken = jwtService.generateToken(user.getId().toString());
+    logger.info("Generated dev token for user: {}", user.getEmail());
     return new Credentials(authToken, refreshTokenValue);
   }
 }

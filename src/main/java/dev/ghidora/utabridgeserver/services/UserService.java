@@ -7,6 +7,8 @@ import dev.ghidora.utabridgeserver.models.User;
 import dev.ghidora.utabridgeserver.repositories.UserRepository;
 import java.time.Instant;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
   private final UserRepository userRepository;
+  private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
   public UserService(UserRepository userRepository) {
     this.userRepository = userRepository;
@@ -35,8 +38,14 @@ public class UserService {
       String email, String name, String pictureUrl, String providerId, IdentityProvider provider) {
     return userRepository
         .findByEmail(email)
+        .map(
+            user -> {
+              logger.debug("Found existing user with email: {}", email);
+              return user;
+            })
         .orElseGet(
             () -> {
+              logger.info("No user found with email: {}. Creating new user.", email);
               User user = new User();
               user.setEmail(email);
               user.setName(name);
@@ -45,7 +54,9 @@ public class UserService {
               user.setProvider(provider);
               user.setLastActiveAt(Instant.now());
               user.initializeDefaultPreferences();
-              return userRepository.save(user);
+              User newUser = userRepository.save(user);
+              logger.info("Successfully created new user with ID: {}", newUser.getId());
+              return newUser;
             });
   }
 
@@ -60,6 +71,7 @@ public class UserService {
    */
   public User updatePreferences(Long userId, Map<String, String> preferences)
       throws IllegalArgumentException, ResourceNotFoundException {
+    logger.debug("Attempting to update preferences for user ID: {}", userId);
     var user =
         userRepository
             .findById(userId)
@@ -68,13 +80,15 @@ public class UserService {
     if (preferences != null) {
       preferences.forEach(
           (key, value) -> {
+            logger.debug("Updating preference for user {}: {} = {}", userId, key, value);
             var prefKey = UserPreferenceType.valueOf(key.toUpperCase());
             user.addPreference(prefKey, value);
           });
     }
 
-    userRepository.save(user);
+    User updatedUser = userRepository.save(user);
+    logger.info("Successfully updated preferences for user ID: {}", userId);
 
-    return user;
+    return updatedUser;
   }
 }
