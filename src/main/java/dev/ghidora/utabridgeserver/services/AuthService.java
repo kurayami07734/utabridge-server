@@ -14,6 +14,8 @@ import java.security.GeneralSecurityException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,7 @@ public class AuthService {
   private final JwtService jwtService;
   private final UserService userService;
   private final RefreshTokenRepository refreshTokenRepository;
+  private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
   /**
    * Constructs an AuthService.
@@ -46,12 +49,14 @@ public class AuthService {
   }
 
   private String getRefreshToken(User user) {
+    logger.debug("Generating new refresh token for user ID: {}", user.getId());
     var token = RefreshTokenGenerator.generate();
     RefreshToken refreshToken = new RefreshToken();
     refreshToken.setHashedToken(Sha256HashGenerator.hashString(token));
     refreshToken.setUser(user);
     refreshToken.setExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS));
     refreshTokenRepository.save(refreshToken);
+    logger.debug("Successfully saved new refresh token for user ID: {}", user.getId());
     return token;
   }
 
@@ -65,7 +70,9 @@ public class AuthService {
    * @throws IOException if io error occurs
    */
   public LoginResponse login(String token) throws GeneralSecurityException, IOException {
+    logger.debug("Attempting to log in user with a third-party token.");
     var verifiedUser = identityTokenVerifier.verifyToken(token);
+    logger.debug("Token verified with provider: {}", identityTokenVerifier.getProvider());
 
     User user =
         userService.getOrCreateUser(
@@ -79,6 +86,7 @@ public class AuthService {
     var refreshToken = getRefreshToken(user);
     var userDto = new UserDto(user.getName(), user.getPictureUrl());
 
+    logger.info("Login successful for user: {}", user.getEmail());
     return new LoginResponse(authToken, refreshToken, userDto);
   }
 
@@ -91,20 +99,27 @@ public class AuthService {
    * @throws IOException If an IO error occurs.
    */
   public Credentials refreshCredentials(String token) throws GeneralSecurityException, IOException {
+    logger.debug("Attempting to refresh credentials.");
     String hashedToken = Sha256HashGenerator.hashString(token);
 
     Optional<RefreshToken> refreshToken = refreshTokenRepository.findByHashedToken(hashedToken);
 
     if (refreshToken.isEmpty() || refreshToken.get().isRevoked()) {
+      logger.warn("Attempt to refresh credentials with invalid or revoked token.");
       throw new GeneralSecurityException("Invalid refresh token!");
     }
 
+    User user = refreshToken.get().getUser();
+    logger.debug("Found valid refresh token for user ID: {}", user.getId());
+
     refreshToken.get().setRevoked(true);
     refreshTokenRepository.save(refreshToken.get());
+    logger.debug("Revoked old refresh token for user ID: {}", user.getId());
 
-    var authToken = jwtService.generateToken(refreshToken.get().getUser().getId().toString());
-    var newRefreshToken = getRefreshToken(refreshToken.get().getUser());
+    var authToken = jwtService.generateToken(user.getId().toString());
+    var newRefreshToken = getRefreshToken(user);
 
+    logger.info("Successfully refreshed credentials for user ID: {}", user.getId());
     return new Credentials(authToken, newRefreshToken);
   }
 }

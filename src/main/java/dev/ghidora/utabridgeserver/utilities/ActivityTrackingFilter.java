@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -34,6 +36,7 @@ public class ActivityTrackingFilter extends OncePerRequestFilter {
   };
 
   private final UserRepository userRepository;
+  private static final Logger logger = LoggerFactory.getLogger(ActivityTrackingFilter.class);
 
   public ActivityTrackingFilter(UserRepository userRepository) {
     this.userRepository = userRepository;
@@ -43,7 +46,21 @@ public class ActivityTrackingFilter extends OncePerRequestFilter {
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
       throws ServletException, IOException {
-    filterChain.doFilter(request, response);
+
+    Instant start = Instant.now();
+    logger.debug("Request started: {} {}", request.getMethod(), request.getRequestURI());
+
+    try {
+      filterChain.doFilter(request, response);
+    } finally {
+      long timeTaken = Duration.between(start, Instant.now()).toMillis();
+      logger.debug(
+          "Request finished: {} {} with status {} in {}ms",
+          request.getMethod(),
+          request.getRequestURI(),
+          response.getStatus(),
+          timeTaken);
+    }
 
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     if (auth == null || !auth.isAuthenticated()) {

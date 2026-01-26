@@ -15,6 +15,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -30,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 @SecurityRequirement(name = "bearer-jwt")
 public class UserController {
   private final UserService userService;
+  private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
   public UserController(UserService userService) {
     this.userService = userService;
@@ -111,11 +114,17 @@ public class UserController {
       @AuthenticationPrincipal String authUserId,
       @PathVariable("userId") Long userId,
       @Valid @RequestBody UpdateUser body) {
+    logger.debug(
+        "User {} attempting to update preferences for user {} with body: {}",
+        authUserId,
+        userId,
+        body);
     if (!Long.valueOf(authUserId).equals(userId)) {
       throw new ForbiddenOperationException("Only allowed to update preference for self");
     }
     try {
       var user = userService.updatePreferences(userId, body.preferences);
+      logger.info("User {} preferences updated successfully", userId);
       return ResponseEntity.ok(user);
     } catch (IllegalArgumentException e) {
       throw new ValidationException(e.getMessage());

@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,6 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/health")
 @Tag(name = "Health", description = "Endpoints for service health checks")
 public class HealthController {
+
+  private static final Logger logger = LoggerFactory.getLogger(HealthController.class);
 
   /**
    * Response payload for health check.
@@ -36,6 +40,7 @@ public class HealthController {
               examples = @ExampleObject(name = "Healthy", value = "{\"health\": \"ok\"}")))
   @GetMapping
   public HealthStatus getHealth() {
+    logger.trace("Health check endpoint was called");
     return new HealthStatus("ok");
   }
 }

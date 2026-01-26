@@ -11,6 +11,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 @SecurityRequirement(name = "bearer-jwt")
 public class LocalizeController {
   private final LocalizationService localizationService;
+  private static final Logger logger = LoggerFactory.getLogger(LocalizeController.class);
 
   public LocalizeController(LocalizationService localizationService) {
     this.localizationService = localizationService;
@@ -94,6 +97,7 @@ public class LocalizeController {
       })
   @PostMapping("/api/localize")
   public LocalizeResponse getTranslation(@Valid @RequestBody LocalizeRequest payload) {
+    logger.debug("Received localization request: {}", payload);
     return localizationService.localize(
         payload.text(), payload.fromLanguage(), payload.toLanguage());
   }
