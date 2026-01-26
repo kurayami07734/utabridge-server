@@ -37,6 +37,7 @@ public class JwtService {
   public String generateToken(String subject) {
     return Jwts.builder()
         .subject(subject)
+        .issuer("ghidora.dev")
         .issuedAt(new Date(System.currentTimeMillis()))
         .expiration(new Date(System.currentTimeMillis() + validityDurationMs))
         .signWith(getSigningKey())
