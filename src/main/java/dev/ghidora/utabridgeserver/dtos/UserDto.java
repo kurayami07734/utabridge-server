@@ -10,5 +10,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
  */
 @Schema(description = "User profile information")
 public record UserDto(
+    @Schema(example = "10") Long id,
     @Schema(example = "John Doe") String name,
     @Schema(example = "https://example.com/avatar.jpg") String pictureUrl) {}

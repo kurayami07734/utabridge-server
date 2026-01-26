@@ -47,6 +47,7 @@ class UserServiceTest {
     // Arrange
     String email = "new@example.com";
     when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+    when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
     // Act
     userService.getOrCreateUser(email, "name", "url", "123", IdentityProvider.GOOGLE);
@@ -189,6 +190,7 @@ class UserServiceTest {
     // Arrange
     String email = "new@example.com";
     when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+    when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
     // Act
     userService.getOrCreateUser(email, "name", "url", "123", IdentityProvider.GOOGLE);

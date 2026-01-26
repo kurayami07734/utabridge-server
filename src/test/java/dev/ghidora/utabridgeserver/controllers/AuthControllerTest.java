@@ -41,9 +41,10 @@ class AuthControllerTest {
     String authToken = "generated-jwt-token";
     String refreshToken = "refresh-token";
     String userName = "Test User";
+    Long userId = 1L;
     String userPictureUrl = "https://example.com/avatar.jpg";
     AuthController.LoginRequest request = new AuthController.LoginRequest(tokenIn);
-    UserDto userDto = new UserDto(userName, userPictureUrl);
+    UserDto userDto = new UserDto(userId, userName, userPictureUrl);
     LoginResponse loginResponse = new LoginResponse(authToken, refreshToken, userDto);
 
     given(authService.login(tokenIn)).willReturn(loginResponse);
@@ -58,6 +59,7 @@ class AuthControllerTest {
         .andExpect(jsonPath("$.authToken").value(authToken))
         .andExpect(jsonPath("$.refreshToken").value(refreshToken))
         .andExpect(jsonPath("$.user.name").value(userName))
+        .andExpect(jsonPath("$.user.id").value(userId))
         .andExpect(jsonPath("$.user.pictureUrl").value(userPictureUrl));
   }
 

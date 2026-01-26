@@ -38,6 +38,7 @@ class AuthServiceTest {
     String mockToken = "google-token";
     String email = "test@example.com";
     String name = "Test User";
+    Long id = 1L;
     String pictureUrl = "https://example.com/avatar.jpg";
     var mockIdentity = new IdentityTokenVerifier.VerifiedUser(name, email, pictureUrl, "123");
 
@@ -45,7 +46,7 @@ class AuthServiceTest {
     when(identityTokenVerifier.getProvider()).thenReturn(IdentityProvider.GOOGLE);
 
     User user = new User();
-    ReflectionTestUtils.setField(user, "id", 1L);
+    ReflectionTestUtils.setField(user, "id", id);
     ReflectionTestUtils.setField(user, "name", name);
     ReflectionTestUtils.setField(user, "pictureUrl", pictureUrl);
 
@@ -62,6 +63,7 @@ class AuthServiceTest {
     assertThat(result.authToken()).isEqualTo("signed-jwt");
     assertThat(result.refreshToken()).isNotEmpty();
     assertThat(result.user()).isNotNull();
+    assertThat(result.user().id()).isEqualTo(id);
     assertThat(result.user().name()).isEqualTo(name);
     assertThat(result.user().pictureUrl()).isEqualTo(pictureUrl);
     verify(refreshTokenRepository).save(any(RefreshToken.class));
