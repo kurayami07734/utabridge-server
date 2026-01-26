@@ -69,7 +69,7 @@ public class DevController {
     refreshToken.setExpiresAt(Instant.now().plusSeconds(86400));
     refreshTokenRepository.save(refreshToken);
     String authToken = jwtService.generateToken(user.getId().toString());
-    logger.info("Generated dev token for user: {}", user.getEmail());
+    logger.info("Generated dev token for user: {}", user.getId());
     return new Credentials(authToken, refreshTokenValue);
   }
 }

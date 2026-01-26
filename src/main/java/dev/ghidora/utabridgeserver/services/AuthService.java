@@ -84,9 +84,9 @@ public class AuthService {
 
     var authToken = jwtService.generateToken(user.getId().toString());
     var refreshToken = getRefreshToken(user);
-    var userDto = new UserDto(user.getName(), user.getPictureUrl());
+    var userDto = new UserDto(user.getId(), user.getName(), user.getPictureUrl());
 
-    logger.info("Login successful for user: {}", user.getEmail());
+    logger.info("Login successful for user: {}", user.getId());
     return new LoginResponse(authToken, refreshToken, userDto);
   }
 
