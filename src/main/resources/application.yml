@@ -4,7 +4,7 @@ spring:
   datasource:
     url: jdbc:postgresql://0.0.0.0:5432/utabridge_db
     username: postgres
-    password: ${DB_PASSWORD:password}
+    password: password
   jpa:
     hibernate:
       ddl-auto: validate
