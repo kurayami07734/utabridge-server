@@ -33,8 +33,7 @@ public class LocalizationService {
    */
   @Transactional
   public LocalizeResponse localize(String text, String fromLanguage, String toLanguage) {
-    logger.debug(
-        "Attempting to localize text '{}' from {} to {}", text, fromLanguage, toLanguage);
+    logger.debug("Attempting to localize text '{}' from {} to {}", text, fromLanguage, toLanguage);
     Optional<SourceTerm> sourceTerm = sourceTermRepository.findByOriginalText(text);
 
     if (sourceTerm.isEmpty()) {
@@ -79,15 +78,14 @@ public class LocalizationService {
 
     if (translation.isPresent()) {
       logger.debug(
-          "Translation for source term '{}' to language {} found in cache.",
-          text,
-          toLanguage);
+          "Translation for source term '{}' to language {} found in cache.", text, toLanguage);
       return new LocalizeResponse(
           translation.get().getTranslatedText(), existingTerm.getRomanizedText());
     }
 
     logger.info(
-        "Translation for source term '{}' to language {} not found in cache. Creating new translation.",
+        "Translation for source term '{}' to language {} not found in cache. Creating new"
+            + " translation.",
         text,
         toLanguage);
     String translatedText = translationService.translateText(text, fromLanguage, toLanguage);
