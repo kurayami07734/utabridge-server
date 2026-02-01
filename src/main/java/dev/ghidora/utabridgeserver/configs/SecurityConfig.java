@@ -6,6 +6,8 @@ import dev.ghidora.utabridgeserver.utilities.RateLimitFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -20,18 +22,22 @@ public class SecurityConfig {
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
   private final RateLimitFilter rateLimitFilter;
   private final ActivityTrackingFilter activityTrackingFilter;
+  private final Environment env;
 
   /**
    * Constructs a new SecurityConfig.
    *
+   * @param env selected environment
    * @param jwtAuthenticationFilter The JWT authentication filter.
    * @param rateLimitFilter The rate limit filter.
    * @param activityTrackingFilter The activity tracking filter.
    */
   public SecurityConfig(
+      Environment env,
       JwtAuthenticationFilter jwtAuthenticationFilter,
       RateLimitFilter rateLimitFilter,
       ActivityTrackingFilter activityTrackingFilter) {
+    this.env = env;
     this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     this.rateLimitFilter = rateLimitFilter;
     this.activityTrackingFilter = activityTrackingFilter;
@@ -46,6 +52,8 @@ public class SecurityConfig {
    */
   @Bean
   SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    boolean isProduction = env.acceptsProfiles(Profiles.of("prod"));
+
     http.csrf(AbstractHttpConfigurer::disable)
         .cors(cors -> cors.configure(http))
         .sessionManagement(
@@ -63,15 +71,18 @@ public class SecurityConfig {
                                   + " required\"}");
                     }))
         .authorizeHttpRequests(
-            auth ->
-                auth.requestMatchers("/api/auth/login", "/api/health", "/api/auth/refresh")
-                    .permitAll()
-                    .requestMatchers("/api/dev/**")
-                    .permitAll()
-                    .requestMatchers("/api/docs.html", "/v3/api-docs/**", "/api/swagger-ui/**")
-                    .permitAll()
-                    .anyRequest()
-                    .authenticated())
+            auth -> {
+              auth.requestMatchers("/api/auth/login", "/api/health", "/api/auth/refresh")
+                  .permitAll();
+
+              if (!isProduction) {
+                auth.requestMatchers("/api/dev/**").permitAll();
+                auth.requestMatchers("/api/docs.html", "/v3/api-docs/**", "/api/swagger-ui/**")
+                    .permitAll();
+              }
+
+              auth.anyRequest().authenticated();
+            })
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
         .addFilterBefore(rateLimitFilter, JwtAuthenticationFilter.class)
         .addFilterAfter(activityTrackingFilter, UsernamePasswordAuthenticationFilter.class);
