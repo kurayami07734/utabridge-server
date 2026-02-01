@@ -6,6 +6,8 @@ import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -39,6 +41,7 @@ public class SourceTerm {
   @ElementCollection
   @CollectionTable(name = "source_term_tags", joinColumns = @JoinColumn(name = "source_term_id"))
   @Column(name = "tag")
+  @Enumerated(EnumType.STRING)
   private List<TextTag> tags = new ArrayList<>();
 
   @OneToMany(mappedBy = "sourceTerm", cascade = CascadeType.ALL, orphanRemoval = true)
