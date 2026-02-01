@@ -1,5 +1,4 @@
 # === Stage 1: Build the Application ===
-# Use an official Maven image with Java 21
 FROM maven:3.9.11-eclipse-temurin-21-noble AS build
 
 WORKDIR /app
@@ -10,23 +9,26 @@ RUN mvn dependency:go-offline
 
 # Copy the rest of your source code and build
 COPY src ./src
-RUN mvn package -DskipTests
+RUN mvn clean package -DskipTests
 
 # === Stage 2: Create the Final Runtime Image ===
-# Use a minimal Java 21 JRE image
-FROM eclipse-temurin:21-jre-noble
+FROM eclipse-temurin:21-jre-alpine
 
 # Set a non-root user
 RUN addgroup --system spring && adduser --system --ingroup spring springuser
-USER springuser
 
 WORKDIR /app
+
+# Create logs directory and set ownership to springuser
+RUN mkdir -p /app/logs && chown -R springuser:spring /app/logs
 
 # Copy the built .jar file from the 'build' stage
 COPY --from=build /app/target/*.jar app.jar
 
-# Expose the port
+RUN chown -R springuser:spring /app
+
+USER springuser
+
 EXPOSE 8080
 
-# Run the app
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

@@ -1,0 +1,48 @@
+services:
+  utabridge-db:
+    image: postgres:16-alpine
+    env_file: .env
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_DB=${DB_NAME}
+    expose:
+      - "5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  utabridge-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/gcp_key
+      - SPRING_PROFILES_ACTIVE=prod
+      - DB_HOST=utabridge-db
+      - DB_PORT=5432
+    ports:
+      - "8080:8080"
+    volumes:
+      - logs:/app/logs
+    depends_on:
+      utabridge-db:
+        condition: service_healthy
+    secrets:
+      - gcp_key
+    restart: unless-stopped
+
+secrets:
+  gcp_key:
+    file: ./secrets/gcp-key.json
+
+volumes:
+  postgres_data:
+  logs:
+    driver: local
