@@ -41,7 +41,7 @@ public class UserService {
    */
   public User getOrCreateUser(
       String email, String name, String pictureUrl, String providerId, IdentityProvider provider) {
-    logger.debug("Attempting to get or create user with email: {}", email);
+    logger.debug("Attempting to get or create user");
 
     return userRepository
         .findByEmail(email)
@@ -50,7 +50,7 @@ public class UserService {
 
   private User createUser(
       String email, String name, String pictureUrl, String providerId, IdentityProvider provider) {
-    logger.debug("Creating new user with email: {}", email);
+    logger.debug("Creating new user");
     User user = new User();
     user.setEmail(email);
     user.setName(name);
