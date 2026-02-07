@@ -9,11 +9,12 @@ import dev.ghidora.utabridgeserver.enums.UserPreferenceType;
 import dev.ghidora.utabridgeserver.exceptions.ResourceNotFoundException;
 import dev.ghidora.utabridgeserver.models.User;
 import dev.ghidora.utabridgeserver.repositories.UserRepository;
+import jakarta.persistence.EntityManager;
 import java.util.Map;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -24,7 +25,15 @@ class UserServiceTest {
 
   @Mock private UserRepository userRepository;
 
-  @InjectMocks private UserService userService;
+  @Mock private EntityManager entityManager;
+
+  private UserService userService;
+
+  @BeforeEach
+  void setUp() {
+    userService = new UserService(userRepository);
+    ReflectionTestUtils.setField(userService, "entityManager", entityManager);
+  }
 
   @Test
   void getOrCreateUser_ExistingUser_ReturnsUser() {
@@ -34,7 +43,7 @@ class UserServiceTest {
     ReflectionTestUtils.setField(existingUser, "id", 1L);
     existingUser.setEmail(email);
 
-    when(userRepository.saveAndFlush(any(User.class))).thenReturn(existingUser);
+    when(userRepository.findByEmail(email)).thenReturn(Optional.of(existingUser));
 
     // Act
     User result = userService.getOrCreateUser(email, "name", "url", "123", IdentityProvider.GOOGLE);
@@ -42,8 +51,8 @@ class UserServiceTest {
     // Assert
     assertNotNull(result);
     assertEquals(email, result.getEmail());
-    verify(userRepository).saveAndFlush(any(User.class));
-    verify(userRepository, never()).findByEmail(any());
+    verify(userRepository).findByEmail(email);
+    verify(userRepository, never()).saveAndFlush(any(User.class));
   }
 
   @Test
@@ -54,6 +63,7 @@ class UserServiceTest {
     ReflectionTestUtils.setField(savedUser, "id", 1L);
     savedUser.setEmail(email);
 
+    when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
     when(userRepository.saveAndFlush(any(User.class))).thenReturn(savedUser);
 
     // Act
@@ -62,8 +72,8 @@ class UserServiceTest {
     // Assert
     assertNotNull(result);
     assertEquals(email, result.getEmail());
+    verify(userRepository).findByEmail(email);
     verify(userRepository).saveAndFlush(any(User.class));
-    verify(userRepository, never()).findByEmail(any());
   }
 
   @Test
@@ -225,11 +235,13 @@ class UserServiceTest {
     existingUser.setEmail(email);
     existingUser.setName("Existing User");
 
+    // First findByEmail returns empty (triggers creation path)
+    when(userRepository.findByEmail(email))
+        .thenReturn(Optional.empty())
+        .thenReturn(Optional.of(existingUser));
     // First saveAndFlush throws exception (race condition)
     when(userRepository.saveAndFlush(any(User.class)))
         .thenThrow(new DataIntegrityViolationException("Unique constraint violation"));
-    // Then findByEmail returns the existing user created by another thread
-    when(userRepository.findByEmail(email)).thenReturn(Optional.of(existingUser));
 
     // Act
     User result = userService.getOrCreateUser(email, "name", "url", "123", IdentityProvider.GOOGLE);
@@ -239,7 +251,7 @@ class UserServiceTest {
     assertEquals(email, result.getEmail());
     assertEquals("Existing User", result.getName());
     verify(userRepository).saveAndFlush(any(User.class));
-    verify(userRepository).findByEmail(email);
+    verify(userRepository, times(2)).findByEmail(email);
   }
 
   @Test
