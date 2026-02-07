@@ -4,11 +4,14 @@ import dev.ghidora.utabridgeserver.dtos.LocalizeResponse;
 import dev.ghidora.utabridgeserver.models.SourceTerm;
 import dev.ghidora.utabridgeserver.models.Translation;
 import dev.ghidora.utabridgeserver.repositories.SourceTermRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Service for handling localization and translation persistence. */
@@ -16,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class LocalizationService {
   private final SourceTermRepository sourceTermRepository;
   private final TranslationService translationService;
+  @PersistenceContext private EntityManager entityManager;
   private static final Logger logger = LoggerFactory.getLogger(LocalizationService.class);
 
   public LocalizationService(
@@ -36,24 +40,28 @@ public class LocalizationService {
   public LocalizeResponse localize(String text, String fromLanguage, String toLanguage) {
     logger.debug("Attempting to localize text '{}' from {} to {}", text, fromLanguage, toLanguage);
 
-    // Get or create source term (handles race conditions)
     SourceTerm sourceTerm = getOrCreateSourceTerm(text, fromLanguage, toLanguage);
 
-    // Get or create translation (handles race conditions)
     Translation translation = getOrCreateTranslation(sourceTerm, text, fromLanguage, toLanguage);
 
     return new LocalizeResponse(translation.getTranslatedText(), sourceTerm.getRomanizedText());
   }
 
   private SourceTerm getOrCreateSourceTerm(String text, String fromLanguage, String toLanguage) {
+    return sourceTermRepository
+        .findByOriginalText(text)
+        .orElseGet(() -> createSourceTerm(text, fromLanguage, toLanguage));
+  }
+
+  private SourceTerm createSourceTerm(String text, String fromLanguage, String toLanguage) {
     String romanizedText = translationService.romanizeText(text, fromLanguage);
+    String translatedText = translationService.translateText(text, fromLanguage, toLanguage);
 
     SourceTerm newSourceTerm = new SourceTerm();
     newSourceTerm.setLanguageCode(fromLanguage);
     newSourceTerm.setOriginalText(text);
     newSourceTerm.setRomanizedText(romanizedText);
 
-    String translatedText = translationService.translateText(text, fromLanguage, toLanguage);
     Translation newTrans = new Translation();
     newTrans.setSourceTerm(newSourceTerm);
     newTrans.setLanguageCode(toLanguage);
@@ -65,28 +73,33 @@ public class LocalizationService {
       logger.info("Successfully created new source term with ID: {}", savedTerm.getId());
       return savedTerm;
     } catch (DataIntegrityViolationException ex) {
-      // Race condition: another thread created the source term
-      logger.debug(
-          "Source term for text '{}' was created by another thread. Fetching existing.", text);
-      return sourceTermRepository
-          .findByOriginalText(text)
-          .orElseThrow(
-              () ->
-                  new IllegalStateException(
-                      "Source term not found after constraint violation for text: " + text));
+      return findSourceTermByText(text);
     }
+  }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  private SourceTerm findSourceTermByText(String text) {
+    return sourceTermRepository
+        .findByOriginalText(text)
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "Source term not found after constraint violation for text: " + text));
   }
 
   private Translation getOrCreateTranslation(
       SourceTerm sourceTerm, String text, String fromLanguage, String toLanguage) {
-    // Check if translation already exists
     Optional<Translation> existingTranslation = sourceTerm.getTranslation(toLanguage);
     if (existingTranslation.isPresent()) {
       logger.debug("Found existing translation for text '{}' to {}", text, toLanguage);
       return existingTranslation.get();
     }
 
-    // Try to create new translation
+    return createTranslation(sourceTerm, text, fromLanguage, toLanguage);
+  }
+
+  private Translation createTranslation(
+      SourceTerm sourceTerm, String text, String fromLanguage, String toLanguage) {
     logger.info("Creating new translation for text '{}' to {}", text, toLanguage);
     String translatedText = translationService.translateText(text, fromLanguage, toLanguage);
     Translation newTrans = new Translation();
@@ -101,29 +114,28 @@ public class LocalizationService {
       logger.debug("Successfully created new translation for text '{}' to {}", text, toLanguage);
       return newTrans;
     } catch (DataIntegrityViolationException ex) {
-      // Race condition: another thread created the translation
-      logger.debug(
-          "Translation for text '{}' to {} was created by another thread. Fetching existing.",
-          text,
-          toLanguage);
-      // Re-fetch from database to get the newly added translation
-      SourceTerm refreshedTerm =
-          sourceTermRepository
-              .findById(sourceTerm.getId())
-              .orElseThrow(
-                  () ->
-                      new IllegalStateException(
-                          "Source term not found after constraint violation for ID: "
-                              + sourceTerm.getId()));
-      return refreshedTerm
-          .getTranslation(toLanguage)
-          .orElseThrow(
-              () ->
-                  new IllegalStateException(
-                      "Translation not found after constraint violation for text: "
-                          + text
-                          + " to language: "
-                          + toLanguage));
+      return findTranslation(sourceTerm.getId(), toLanguage, text);
     }
+  }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  private Translation findTranslation(Long sourceTermId, String toLanguage, String text) {
+    SourceTerm refreshedTerm =
+        sourceTermRepository
+            .findById(sourceTermId)
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "Source term not found after constraint violation for ID: "
+                            + sourceTermId));
+    return refreshedTerm
+        .getTranslation(toLanguage)
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "Translation not found after constraint violation for text: "
+                        + text
+                        + " to language: "
+                        + toLanguage));
   }
 }

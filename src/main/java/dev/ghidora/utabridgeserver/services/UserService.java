@@ -5,12 +5,15 @@ import dev.ghidora.utabridgeserver.enums.UserPreferenceType;
 import dev.ghidora.utabridgeserver.exceptions.ResourceNotFoundException;
 import dev.ghidora.utabridgeserver.models.User;
 import dev.ghidora.utabridgeserver.repositories.UserRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import java.time.Instant;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Service for managing user data. */
@@ -19,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
   private final UserRepository userRepository;
+  @PersistenceContext private EntityManager entityManager;
   private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
   public UserService(UserRepository userRepository) {
@@ -37,8 +41,16 @@ public class UserService {
    */
   public User getOrCreateUser(
       String email, String name, String pictureUrl, String providerId, IdentityProvider provider) {
-    // Try to create new user directly - let DB enforce uniqueness
-    logger.debug("Attempting to create user with email: {}", email);
+    logger.debug("Attempting to get or create user with email: {}", email);
+
+    return userRepository
+        .findByEmail(email)
+        .orElseGet(() -> createUser(email, name, pictureUrl, providerId, provider));
+  }
+
+  private User createUser(
+      String email, String name, String pictureUrl, String providerId, IdentityProvider provider) {
+    logger.debug("Creating new user with email: {}", email);
     User user = new User();
     user.setEmail(email);
     user.setName(name);
@@ -53,15 +65,18 @@ public class UserService {
       logger.info("Successfully created new user with ID: {}", newUser.getId());
       return newUser;
     } catch (DataIntegrityViolationException ex) {
-      // Race condition: another thread created the user between check and insert
-      logger.debug("User with email {} was created by another thread. Fetching existing.", email);
-      return userRepository
-          .findByEmail(email)
-          .orElseThrow(
-              () ->
-                  new IllegalStateException(
-                      "User not found after constraint violation for email: " + email));
+      return findUserByEmail(email);
     }
+  }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  private User findUserByEmail(String email) {
+    return userRepository
+        .findByEmail(email)
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "User not found after constraint violation for email: " + email));
   }
 
   /**
