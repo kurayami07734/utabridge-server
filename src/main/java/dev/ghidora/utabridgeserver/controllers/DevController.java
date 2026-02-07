@@ -57,7 +57,7 @@ public class DevController {
   @Operation(summary = "Generate test tokens (development only)")
   @PostMapping("/token")
   public Credentials generateToken(@RequestBody DevTokenRequest request) {
-    logger.warn("Development-only endpoint '/api/dev/token' invoked. Request: {}", request);
+    logger.warn("Development-only endpoint '/api/dev/token' invoked");
     User user =
         userService.getOrCreateUser(
             request.email(), request.name(), null, "dev-test-provider", IdentityProvider.GOOGLE);

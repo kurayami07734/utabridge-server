@@ -89,7 +89,7 @@ public class AuthController {
     logger.info("Login attempt received");
     try {
       var loginResponse = authService.login(payload.token());
-      logger.info("Login successful for user: {}", loginResponse.user());
+      logger.info("Login successful");
       return ResponseEntity.ok().body(loginResponse);
     } catch (GeneralSecurityException e) {
       throw new InvalidTokenException("Invalid or expired identity token");
