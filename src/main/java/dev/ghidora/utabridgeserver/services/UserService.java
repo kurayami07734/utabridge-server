@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,28 +37,31 @@ public class UserService {
    */
   public User getOrCreateUser(
       String email, String name, String pictureUrl, String providerId, IdentityProvider provider) {
-    return userRepository
-        .findByEmail(email)
-        .map(
-            user -> {
-              logger.debug("Found existing user with email: {}", email);
-              return user;
-            })
-        .orElseGet(
-            () -> {
-              logger.info("No user found with email: {}. Creating new user.", email);
-              User user = new User();
-              user.setEmail(email);
-              user.setName(name);
-              user.setPictureUrl(pictureUrl);
-              user.setProviderId(providerId);
-              user.setProvider(provider);
-              user.setLastActiveAt(Instant.now());
-              user.initializeDefaultPreferences();
-              User newUser = userRepository.save(user);
-              logger.info("Successfully created new user with ID: {}", newUser.getId());
-              return newUser;
-            });
+    // Try to create new user directly - let DB enforce uniqueness
+    logger.debug("Attempting to create user with email: {}", email);
+    User user = new User();
+    user.setEmail(email);
+    user.setName(name);
+    user.setPictureUrl(pictureUrl);
+    user.setProviderId(providerId);
+    user.setProvider(provider);
+    user.setLastActiveAt(Instant.now());
+    user.initializeDefaultPreferences();
+
+    try {
+      User newUser = userRepository.saveAndFlush(user);
+      logger.info("Successfully created new user with ID: {}", newUser.getId());
+      return newUser;
+    } catch (DataIntegrityViolationException ex) {
+      // Race condition: another thread created the user between check and insert
+      logger.debug("User with email {} was created by another thread. Fetching existing.", email);
+      return userRepository
+          .findByEmail(email)
+          .orElseThrow(
+              () ->
+                  new IllegalStateException(
+                      "User not found after constraint violation for email: " + email));
+    }
   }
 
   /**
