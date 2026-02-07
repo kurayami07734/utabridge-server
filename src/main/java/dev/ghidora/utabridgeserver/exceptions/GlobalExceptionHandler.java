@@ -221,6 +221,81 @@ public class GlobalExceptionHandler {
   }
 
   /**
+   * Handles UnsupportedLanguageException.
+   *
+   * @param ex The exception.
+   * @param request The HTTP request.
+   * @return Error response.
+   */
+  @ExceptionHandler(UnsupportedLanguageException.class)
+  public ResponseEntity<ErrorResponse> handleUnsupportedLanguage(
+      UnsupportedLanguageException ex, HttpServletRequest request) {
+    logger.warn(
+        "Unsupported language error: {} for request URI: {}",
+        ex.getMessage(),
+        request.getRequestURI());
+    ErrorResponse error =
+        new ErrorResponse(
+            ErrorType.UNSUPPORTED_LANGUAGE,
+            ex.getMessage(),
+            HttpStatus.BAD_REQUEST.value(),
+            request.getRequestURI());
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+  }
+
+  /**
+   * Handles TranslationServiceException.
+   *
+   * @param ex The exception.
+   * @param request The HTTP request.
+   * @return Error response.
+   */
+  @ExceptionHandler(TranslationServiceException.class)
+  public ResponseEntity<ErrorResponse> handleTranslationService(
+      TranslationServiceException ex, HttpServletRequest request) {
+    if (ex.isRetryable()) {
+      logger.warn(
+          "Translation service error (retryable): {} for request URI: {}",
+          ex.getMessage(),
+          request.getRequestURI());
+    } else {
+      logger.error(
+          "Translation service error: {} for request URI: {}",
+          ex.getMessage(),
+          request.getRequestURI(),
+          ex);
+    }
+    ErrorResponse error =
+        new ErrorResponse(
+            ErrorType.TRANSLATION_SERVICE_UNAVAILABLE,
+            ex.getMessage(),
+            HttpStatus.SERVICE_UNAVAILABLE.value(),
+            request.getRequestURI());
+    return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error);
+  }
+
+  /**
+   * Handles TranslationException.
+   *
+   * @param ex The exception.
+   * @param request The HTTP request.
+   * @return Error response.
+   */
+  @ExceptionHandler(TranslationException.class)
+  public ResponseEntity<ErrorResponse> handleTranslation(
+      TranslationException ex, HttpServletRequest request) {
+    logger.warn(
+        "Translation error: {} for request URI: {}", ex.getMessage(), request.getRequestURI());
+    ErrorResponse error =
+        new ErrorResponse(
+            ErrorType.TRANSLATION_ERROR,
+            ex.getMessage(),
+            HttpStatus.BAD_REQUEST.value(),
+            request.getRequestURI());
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+  }
+
+  /**
    * Handles generic Exception.
    *
    * @param ex The exception.
