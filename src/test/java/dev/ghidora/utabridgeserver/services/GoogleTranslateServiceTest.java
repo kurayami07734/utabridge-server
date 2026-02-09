@@ -52,19 +52,22 @@ class GoogleTranslateServiceTest {
 
     when(translate.translate(
             text,
-            TranslateOption.sourceLanguage(sourceLang),
-            TranslateOption.targetLanguage(targetLang)))
+            TranslateOption.targetLanguage(targetLang),
+            TranslateOption.sourceLanguage(sourceLang)))
         .thenReturn(translation);
     when(translation.getTranslatedText()).thenReturn(expectedTranslation);
+    when(translation.getSourceLanguage()).thenReturn(sourceLang);
 
-    String result = googleTranslateService.translateText(text, sourceLang, targetLang);
+    TranslationService.TranslatedText result =
+        googleTranslateService.translateText(text, sourceLang, targetLang);
 
-    assertEquals(expectedTranslation, result);
+    assertEquals(expectedTranslation, result.translatedText());
+    assertEquals(sourceLang, result.detectedLanguage());
     verify(translate)
         .translate(
             text,
-            TranslateOption.sourceLanguage(sourceLang),
-            TranslateOption.targetLanguage(targetLang));
+            TranslateOption.targetLanguage(targetLang),
+            TranslateOption.sourceLanguage(sourceLang));
   }
 
   @Test
@@ -76,14 +79,16 @@ class GoogleTranslateServiceTest {
 
     when(translate.translate(
             text,
-            TranslateOption.sourceLanguage(sourceLang),
-            TranslateOption.targetLanguage(targetLang)))
+            TranslateOption.targetLanguage(targetLang),
+            TranslateOption.sourceLanguage(sourceLang)))
         .thenReturn(translation);
     when(translation.getTranslatedText()).thenReturn(expectedTranslation);
+    when(translation.getSourceLanguage()).thenReturn(sourceLang);
 
-    String result = googleTranslateService.translateText(text, sourceLang, targetLang);
+    TranslationService.TranslatedText result =
+        googleTranslateService.translateText(text, sourceLang, targetLang);
 
-    assertEquals(expectedTranslation, result);
+    assertEquals(expectedTranslation, result.translatedText());
   }
 
   @Test
@@ -103,9 +108,10 @@ class GoogleTranslateServiceTest {
     when(translationServiceClient.romanizeText(any(RomanizeTextRequest.class)))
         .thenReturn(response);
 
-    String result = googleTranslateService.romanizeText(text, sourceLang);
+    TranslationService.RomanizedText result = googleTranslateService.romanizeText(text, sourceLang);
 
-    assertEquals(expectedRomanized, result);
+    assertEquals(expectedRomanized, result.romanizedText());
+    assertEquals(sourceLang, result.detectedLanguage());
   }
 
   @Test
@@ -125,28 +131,9 @@ class GoogleTranslateServiceTest {
     when(translationServiceClient.romanizeText(any(RomanizeTextRequest.class)))
         .thenReturn(response);
 
-    String result = googleTranslateService.romanizeText(text, sourceLang);
+    TranslationService.RomanizedText result = googleTranslateService.romanizeText(text, sourceLang);
 
-    assertEquals(expectedRomanized, result);
-  }
-
-  @Test
-  void translateText_DifferentLanguages_ProduceCorrectTranslation() {
-    String text = "Thank you";
-    String sourceLang = "en";
-    String targetLang = "de";
-    String expectedTranslation = "Danke";
-
-    when(translate.translate(
-            text,
-            TranslateOption.sourceLanguage(sourceLang),
-            TranslateOption.targetLanguage(targetLang)))
-        .thenReturn(translation);
-    when(translation.getTranslatedText()).thenReturn(expectedTranslation);
-
-    String result = googleTranslateService.translateText(text, sourceLang, targetLang);
-
-    assertEquals(expectedTranslation, result);
+    assertEquals(expectedRomanized, result.romanizedText());
   }
 
   @Test
@@ -166,9 +153,43 @@ class GoogleTranslateServiceTest {
     when(translationServiceClient.romanizeText(any(RomanizeTextRequest.class)))
         .thenReturn(response);
 
-    String result = googleTranslateService.romanizeText(text, sourceLang);
+    TranslationService.RomanizedText result = googleTranslateService.romanizeText(text, sourceLang);
 
-    assertEquals(expectedRomanized, result);
+    assertEquals(expectedRomanized, result.romanizedText());
+  }
+
+  @Test
+  void romanizeText_JapaneseText_ReturnsRomanized() {
+    String text = "雪ノ下雪乃";
+    String sourceLang = "ja";
+    String expectedRomanized = "Yukinoshita Yukino";
+
+    Romanization romanization = mock(Romanization.class);
+    when(romanization.getRomanizedText()).thenReturn(expectedRomanized);
+
+    RomanizeTextResponse response = mock(RomanizeTextResponse.class);
+    when(response.getRomanizations(0)).thenReturn(romanization);
+    when(response.getRomanizationsList())
+        .thenReturn(java.util.Collections.singletonList(romanization));
+
+    when(translationServiceClient.romanizeText(any(RomanizeTextRequest.class)))
+        .thenReturn(response);
+
+    TranslationService.RomanizedText result = googleTranslateService.romanizeText(text, sourceLang);
+
+    assertEquals(expectedRomanized, result.romanizedText());
+  }
+
+  @Test
+  void romanizeText_EnglishText_ReturnsOriginalText() {
+    String text = "Hello World";
+    String sourceLang = "en";
+
+    TranslationService.RomanizedText result = googleTranslateService.romanizeText(text, sourceLang);
+
+    assertEquals(text, result.romanizedText());
+    assertEquals("en", result.detectedLanguage());
+    verifyNoInteractions(translationServiceClient);
   }
 
   @Test
@@ -182,9 +203,31 @@ class GoogleTranslateServiceTest {
     when(translationServiceClient.romanizeText(any(RomanizeTextRequest.class)))
         .thenReturn(response);
 
-    String result = googleTranslateService.romanizeText(text, sourceLang);
+    TranslationService.RomanizedText result = googleTranslateService.romanizeText(text, sourceLang);
 
-    assertEquals(text, result);
+    assertEquals(text, result.romanizedText());
+    assertEquals("en", result.detectedLanguage());
+  }
+
+  @Test
+  void translateText_DifferentLanguages_ProduceCorrectTranslation() {
+    String text = "Thank you";
+    String sourceLang = "en";
+    String targetLang = "de";
+    String expectedTranslation = "Danke";
+
+    when(translate.translate(
+            text,
+            TranslateOption.targetLanguage(targetLang),
+            TranslateOption.sourceLanguage(sourceLang)))
+        .thenReturn(translation);
+    when(translation.getTranslatedText()).thenReturn(expectedTranslation);
+    when(translation.getSourceLanguage()).thenReturn(sourceLang);
+
+    TranslationService.TranslatedText result =
+        googleTranslateService.translateText(text, sourceLang, targetLang);
+
+    assertEquals(expectedTranslation, result.translatedText());
   }
 
   @Test
@@ -203,8 +246,8 @@ class GoogleTranslateServiceTest {
 
     when(translate.translate(
             text,
-            TranslateOption.sourceLanguage(sourceLang),
-            TranslateOption.targetLanguage(targetLang)))
+            TranslateOption.targetLanguage(targetLang),
+            TranslateOption.sourceLanguage(sourceLang)))
         .thenThrow(exception);
 
     UnsupportedLanguageException thrownException =
@@ -232,8 +275,8 @@ class GoogleTranslateServiceTest {
 
     when(translate.translate(
             text,
-            TranslateOption.sourceLanguage(sourceLang),
-            TranslateOption.targetLanguage(targetLang)))
+            TranslateOption.targetLanguage(targetLang),
+            TranslateOption.sourceLanguage(sourceLang)))
         .thenThrow(exception);
 
     UnsupportedLanguageException thrownException =
@@ -257,8 +300,8 @@ class GoogleTranslateServiceTest {
 
     when(translate.translate(
             text,
-            TranslateOption.sourceLanguage(sourceLang),
-            TranslateOption.targetLanguage(targetLang)))
+            TranslateOption.targetLanguage(targetLang),
+            TranslateOption.sourceLanguage(sourceLang)))
         .thenThrow(exception);
 
     TranslationServiceException thrownException =
@@ -285,8 +328,8 @@ class GoogleTranslateServiceTest {
 
     when(translate.translate(
             text,
-            TranslateOption.sourceLanguage(sourceLang),
-            TranslateOption.targetLanguage(targetLang)))
+            TranslateOption.targetLanguage(targetLang),
+            TranslateOption.sourceLanguage(sourceLang)))
         .thenThrow(exception);
 
     TranslationServiceException thrownException =
@@ -311,8 +354,8 @@ class GoogleTranslateServiceTest {
 
     when(translate.translate(
             text,
-            TranslateOption.sourceLanguage(sourceLang),
-            TranslateOption.targetLanguage(targetLang)))
+            TranslateOption.targetLanguage(targetLang),
+            TranslateOption.sourceLanguage(sourceLang)))
         .thenThrow(exception);
 
     TranslationServiceException thrownException =
@@ -322,5 +365,49 @@ class GoogleTranslateServiceTest {
 
     assertFalse(thrownException.isRetryable());
     assertTrue(thrownException.getMessage().contains("Authentication failed"));
+  }
+
+  @Test
+  void translateText_AutoDetectSourceLanguage_TranslatesSuccessfully() {
+    String text = "Hello";
+    String targetLang = "ja";
+    String expectedTranslation = "こんにちは";
+    String detectedLang = "en";
+
+    when(translate.translate(text, TranslateOption.targetLanguage(targetLang)))
+        .thenReturn(translation);
+    when(translation.getTranslatedText()).thenReturn(expectedTranslation);
+    when(translation.getSourceLanguage()).thenReturn(detectedLang);
+
+    TranslationService.TranslatedText result =
+        googleTranslateService.translateText(text, targetLang);
+
+    assertEquals(expectedTranslation, result.translatedText());
+    assertEquals(detectedLang, result.detectedLanguage());
+    verify(translate).translate(text, TranslateOption.targetLanguage(targetLang));
+  }
+
+  @Test
+  void romanizeText_AutoDetectSourceLanguage_RomanizesSuccessfully() {
+    String text = "こんにちは";
+    String expectedRomanized = "Konnichiwa";
+    String detectedLang = "ja";
+
+    Romanization romanization = mock(Romanization.class);
+    when(romanization.getRomanizedText()).thenReturn(expectedRomanized);
+    when(romanization.getDetectedLanguageCode()).thenReturn(detectedLang);
+
+    RomanizeTextResponse response = mock(RomanizeTextResponse.class);
+    when(response.getRomanizations(0)).thenReturn(romanization);
+    when(response.getRomanizationsList())
+        .thenReturn(java.util.Collections.singletonList(romanization));
+
+    when(translationServiceClient.romanizeText(any(RomanizeTextRequest.class)))
+        .thenReturn(response);
+
+    TranslationService.RomanizedText result = googleTranslateService.romanizeText(text);
+
+    assertEquals(expectedRomanized, result.romanizedText());
+    assertEquals(detectedLang, result.detectedLanguage());
   }
 }

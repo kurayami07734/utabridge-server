@@ -30,8 +30,7 @@ public class LocalizeController {
   }
 
   /** Request payload for localization. */
-  public record LocalizeRequest(
-      @NotBlank String text, @NotBlank String fromLanguage, @NotBlank String toLanguage) {}
+  public record LocalizeRequest(@NotBlank String text, @NotBlank String language) {}
 
   /**
    * Handles localize requests.
@@ -98,7 +97,6 @@ public class LocalizeController {
   @PostMapping("/api/localize")
   public LocalizeResponse getTranslation(@Valid @RequestBody LocalizeRequest payload) {
     logger.debug("Received localization request: {}", payload);
-    return localizationService.localize(
-        payload.text(), payload.fromLanguage(), payload.toLanguage());
+    return localizationService.localize(payload.text(), payload.language());
   }
 }

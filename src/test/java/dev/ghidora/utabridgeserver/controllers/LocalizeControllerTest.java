@@ -25,7 +25,7 @@ class LocalizeControllerTest {
   private LocalizationService localizationService;
   private ObjectMapper objectMapper;
 
-  private record LocalizeRequest(String text, String fromLanguage, String toLanguage) {}
+  private record LocalizeRequest(String text, String language) {}
 
   @BeforeEach
   void setUp() {
@@ -41,15 +41,14 @@ class LocalizeControllerTest {
   @Test
   void localize_ValidRequest_Returns200() throws Exception {
     String text = "Hello";
-    String from = "en";
-    String to = "ja";
+    String language = "ja";
     String translated = "こんにちは";
     String romanized = "Konnichiwa";
 
-    LocalizeRequest request = new LocalizeRequest(text, from, to);
+    LocalizeRequest request = new LocalizeRequest(text, language);
     LocalizeResponse response = new LocalizeResponse(translated, romanized);
 
-    given(localizationService.localize(text, from, to)).willReturn(response);
+    given(localizationService.localize(text, language)).willReturn(response);
 
     mockMvc
         .perform(
@@ -64,15 +63,14 @@ class LocalizeControllerTest {
   @Test
   void localize_ValidParams_ReturnsCorrectResponse() throws Exception {
     String text = "Good morning";
-    String from = "en";
-    String to = "fr";
+    String language = "fr";
     String translated = "Bonjour";
     String romanized = "Good morning";
 
-    LocalizeRequest request = new LocalizeRequest(text, from, to);
+    LocalizeRequest request = new LocalizeRequest(text, language);
     LocalizeResponse response = new LocalizeResponse(translated, romanized);
 
-    given(localizationService.localize(text, from, to)).willReturn(response);
+    given(localizationService.localize(text, language)).willReturn(response);
 
     mockMvc
         .perform(
@@ -86,7 +84,7 @@ class LocalizeControllerTest {
 
   @Test
   void localize_MissingText_ReturnsBadRequest() throws Exception {
-    String invalidJson = "{\"fromLanguage\": \"en\", \"toLanguage\": \"ja\"}";
+    String invalidJson = "{\"language\": \"ja\"}";
 
     mockMvc
         .perform(post("/api/localize").contentType(MediaType.APPLICATION_JSON).content(invalidJson))
@@ -96,12 +94,11 @@ class LocalizeControllerTest {
   @Test
   void localize_ServiceCalledWithCorrectParams() throws Exception {
     String text = "Hello";
-    String from = "en";
-    String to = "ja";
-    LocalizeRequest request = new LocalizeRequest(text, from, to);
+    String language = "ja";
+    LocalizeRequest request = new LocalizeRequest(text, language);
     LocalizeResponse response = new LocalizeResponse("こんにちは", "Konnichiwa");
 
-    given(localizationService.localize(text, from, to)).willReturn(response);
+    given(localizationService.localize(text, language)).willReturn(response);
 
     mockMvc
         .perform(
@@ -110,7 +107,7 @@ class LocalizeControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk());
 
-    verify(localizationService).localize(text, from, to);
+    verify(localizationService).localize(text, language);
   }
 
   @Test
@@ -123,12 +120,11 @@ class LocalizeControllerTest {
   @Test
   void localize_UnsupportedLanguage_Returns400WithUnsupportedLanguageErrorType() throws Exception {
     String text = "Hello";
-    String from = "xx";
-    String to = "en";
-    LocalizeRequest request = new LocalizeRequest(text, from, to);
+    String language = "en";
+    LocalizeRequest request = new LocalizeRequest(text, language);
 
-    given(localizationService.localize(text, from, to))
-        .willThrow(new UnsupportedLanguageException(from, true));
+    given(localizationService.localize(text, language))
+        .willThrow(new UnsupportedLanguageException("unknown", true));
 
     mockMvc
         .perform(
@@ -137,7 +133,7 @@ class LocalizeControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.error").value("UNSUPPORTED_LANGUAGE"))
-        .andExpect(jsonPath("$.message").value("Language 'xx' is not supported for source"))
+        .andExpect(jsonPath("$.message").value("Language 'unknown' is not supported for source"))
         .andExpect(jsonPath("$.status").value(400))
         .andExpect(jsonPath("$.path").value("/api/localize"));
   }
@@ -146,11 +142,10 @@ class LocalizeControllerTest {
   void localize_TranslationServiceUnavailable_Returns503WithServiceUnavailableErrorType()
       throws Exception {
     String text = "Hello";
-    String from = "en";
-    String to = "ja";
-    LocalizeRequest request = new LocalizeRequest(text, from, to);
+    String language = "ja";
+    LocalizeRequest request = new LocalizeRequest(text, language);
 
-    given(localizationService.localize(text, from, to))
+    given(localizationService.localize(text, language))
         .willThrow(
             new TranslationServiceException(
                 "Translation service is temporarily unavailable. Please try again later.",

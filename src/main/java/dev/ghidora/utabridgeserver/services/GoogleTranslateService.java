@@ -16,6 +16,8 @@ import com.google.cloud.translate.v3.TranslationServiceClient;
 import dev.ghidora.utabridgeserver.exceptions.TranslationException;
 import dev.ghidora.utabridgeserver.exceptions.TranslationServiceException;
 import dev.ghidora.utabridgeserver.exceptions.UnsupportedLanguageException;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,7 +57,7 @@ public class GoogleTranslateService implements TranslationService {
   }
 
   @Override
-  public String translateText(String text, String sourceLanguage, String targetLanguage)
+  public TranslatedText translateText(String text, String sourceLanguage, String targetLanguage)
       throws TranslationException {
     logger.debug(
         "Calling Google Translate API to translate text from {} to {}",
@@ -63,14 +65,18 @@ public class GoogleTranslateService implements TranslationService {
         targetLanguage);
 
     try {
-      Translation translation =
-          translate.translate(
-              text,
-              TranslateOption.sourceLanguage(sourceLanguage),
-              TranslateOption.targetLanguage(targetLanguage));
+      List<TranslateOption> options = new ArrayList<>();
+
+      options.add(TranslateOption.targetLanguage(targetLanguage));
+
+      if (sourceLanguage != null && !sourceLanguage.isEmpty()) {
+        options.add(TranslateOption.sourceLanguage(sourceLanguage));
+      }
+
+      Translation translation = translate.translate(text, options.toArray(new TranslateOption[0]));
       String translatedText = translation.getTranslatedText();
       logger.debug("Successfully translated text. Result: '{}'", translatedText);
-      return translatedText;
+      return new TranslatedText(translatedText, translation.getSourceLanguage());
 
     } catch (Exception e) {
       throw handleTranslationException(
@@ -79,32 +85,66 @@ public class GoogleTranslateService implements TranslationService {
   }
 
   @Override
-  public String romanizeText(String text, String sourceLanguage) throws TranslationException {
+  public TranslatedText translateText(String text, String targetLanguage) {
+    return translateText(text, "", targetLanguage);
+  }
+
+  @Override
+  public RomanizedText romanizeText(String text) {
+    return romanizeText(text, "");
+  }
+
+  @Override
+  public RomanizedText romanizeText(String text, String sourceLanguage)
+      throws TranslationException {
     logger.debug("Calling Google Translate API to romanize text from {}", sourceLanguage);
 
     try {
+      if ("en".equals(sourceLanguage)) {
+        logger.debug("Source language is English, returning original text without romanization");
+        return new RomanizedText(text, "en");
+      }
+
+      var effectiveSourceLanguage = sourceLanguage.equals("zh") ? "ja" : sourceLanguage;
+
       LocationName parent = LocationName.of(projectId, "global");
 
-      RomanizeTextRequest request =
-          RomanizeTextRequest.newBuilder()
-              .setParent(parent.toString())
-              .addContents(text)
-              .setSourceLanguageCode(sourceLanguage)
-              .build();
+      var requestBuilder =
+          RomanizeTextRequest.newBuilder().setParent(parent.toString()).addContents(text);
+
+      if (!effectiveSourceLanguage.isEmpty()) {
+        requestBuilder.setSourceLanguageCode(effectiveSourceLanguage);
+      }
+
+      RomanizeTextRequest request = requestBuilder.build();
 
       RomanizeTextResponse response = translationServiceClient.romanizeText(request);
 
       if (response.getRomanizationsList().isEmpty()) {
         logger.warn("No romanization returned for text '{}' in language {}", text, sourceLanguage);
-        return text;
+        return new RomanizedText(text, "en");
       }
 
-      String romanizedText = response.getRomanizations(0).getRomanizedText();
+      var romanization = response.getRomanizations(0);
+      String romanizedText = romanization.getRomanizedText();
+      String languageCode =
+          effectiveSourceLanguage.isEmpty()
+              ? romanization.getDetectedLanguageCode()
+              : effectiveSourceLanguage;
       logger.debug("Successfully romanized text. Result: '{}'", romanizedText);
-      return romanizedText;
+      return new RomanizedText(romanizedText, languageCode);
 
     } catch (Exception e) {
-      throw handleTranslationException(e, sourceLanguage, null, "romanization", "romanizing text");
+      if (sourceLanguage.equals("zh")) {
+        logger.warn(
+            "Romanization while defaulting to 'ja' failed. Retrying as 'zh-CN' for text: {}", text);
+        try {
+          return romanizeText(text, "zh-CN"); // Recursively call with forced 'ja'
+        } catch (Exception retryEx) {
+          logger.error("Retry as 'zh-CN' also failed.");
+        }
+      }
+      throw handleTranslationException(e, sourceLanguage, "en", "romanization", "romanizing text");
     }
   }
 
