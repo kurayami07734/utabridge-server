@@ -14,6 +14,7 @@ import dev.ghidora.utabridgeserver.dtos.UserDto;
 import dev.ghidora.utabridgeserver.exceptions.GlobalExceptionHandler;
 import dev.ghidora.utabridgeserver.services.AuthService;
 import java.security.GeneralSecurityException;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -43,8 +44,10 @@ class AuthControllerTest {
     String userName = "Test User";
     Long userId = 1L;
     String userPictureUrl = "https://example.com/avatar.jpg";
+    String userEmail = "test@example.com";
+    Map<String, String> userPreferences = Map.of("PRIMARY_TEXT_TYPE", "ROMANIZATION");
     AuthController.LoginRequest request = new AuthController.LoginRequest(tokenIn);
-    UserDto userDto = new UserDto(userId, userName, userPictureUrl);
+    UserDto userDto = new UserDto(userId, userName, userPictureUrl, userEmail, userPreferences);
     LoginResponse loginResponse = new LoginResponse(authToken, refreshToken, userDto);
 
     given(authService.login(tokenIn)).willReturn(loginResponse);
@@ -60,7 +63,9 @@ class AuthControllerTest {
         .andExpect(jsonPath("$.refreshToken").value(refreshToken))
         .andExpect(jsonPath("$.user.name").value(userName))
         .andExpect(jsonPath("$.user.id").value(userId))
-        .andExpect(jsonPath("$.user.pictureUrl").value(userPictureUrl));
+        .andExpect(jsonPath("$.user.pictureUrl").value(userPictureUrl))
+        .andExpect(jsonPath("$.user.email").value(userEmail))
+        .andExpect(jsonPath("$.user.preferences.PRIMARY_TEXT_TYPE").value("ROMANIZATION"));
   }
 
   @Test

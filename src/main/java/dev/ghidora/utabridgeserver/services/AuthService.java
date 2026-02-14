@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,7 +85,16 @@ public class AuthService {
 
     var authToken = jwtService.generateToken(user.getId().toString());
     var refreshToken = getRefreshToken(user);
-    var userDto = new UserDto(user.getId(), user.getName(), user.getPictureUrl());
+    var userDto =
+        new UserDto(
+            user.getId(),
+            user.getName(),
+            user.getPictureUrl(),
+            user.getEmail(),
+            user.getPreferences().entrySet().stream()
+                .collect(
+                    java.util.stream.Collectors.toMap(
+                        e -> e.getKey().name(), Map.Entry::getValue)));
 
     logger.info("Login successful for user: {}", user.getId());
     return new LoginResponse(authToken, refreshToken, userDto);
