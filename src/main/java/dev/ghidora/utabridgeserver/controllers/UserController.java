@@ -1,8 +1,8 @@
 package dev.ghidora.utabridgeserver.controllers;
 
+import dev.ghidora.utabridgeserver.dtos.UserDto;
 import dev.ghidora.utabridgeserver.exceptions.ForbiddenOperationException;
 import dev.ghidora.utabridgeserver.exceptions.ValidationException;
-import dev.ghidora.utabridgeserver.models.User;
 import dev.ghidora.utabridgeserver.services.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -110,7 +110,7 @@ public class UserController {
                                     + " to update preference for self\", \"status\": 403}")))
       })
   @PatchMapping("/{userId}")
-  public ResponseEntity<User> updateUser(
+  public ResponseEntity<UserDto> updateUser(
       @AuthenticationPrincipal String authUserId,
       @PathVariable("userId") Long userId,
       @Valid @RequestBody UpdateUser body) {
@@ -123,9 +123,19 @@ public class UserController {
       throw new ForbiddenOperationException("Only allowed to update preference for self");
     }
     try {
-      var user = userService.updatePreferences(userId, body.preferences);
+      var user = userService.updatePreferences(userId, body.preferences());
       logger.info("User {} preferences updated successfully", userId);
-      return ResponseEntity.ok(user);
+      var userDto =
+          new UserDto(
+              user.getId(),
+              user.getName(),
+              user.getPictureUrl(),
+              user.getEmail(),
+              user.getPreferences().entrySet().stream()
+                  .collect(
+                      java.util.stream.Collectors.toMap(
+                          e -> e.getKey().name(), Map.Entry::getValue)));
+      return ResponseEntity.ok(userDto);
     } catch (IllegalArgumentException e) {
       throw new ValidationException(e.getMessage());
     }

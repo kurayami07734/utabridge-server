@@ -24,6 +24,7 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -73,6 +74,9 @@ class UserControllerTest {
     Map<UserPreferenceType, String> userPreferences = new EnumMap<>(UserPreferenceType.class);
     userPreferences.put(UserPreferenceType.PRIMARY_TEXT_TYPE, "TRANSLATION");
     User updatedUser = new User();
+    ReflectionTestUtils.setField(updatedUser, "id", userId);
+    updatedUser.setName("Test User");
+    updatedUser.setPictureUrl("https://example.com/avatar.jpg");
     updatedUser.setEmail("test@example.com");
     updatedUser.setPreferences(userPreferences);
 
@@ -85,6 +89,9 @@ class UserControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of("preferences", preferences))))
         .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(userId))
+        .andExpect(jsonPath("$.name").value("Test User"))
+        .andExpect(jsonPath("$.pictureUrl").value("https://example.com/avatar.jpg"))
         .andExpect(jsonPath("$.email").value("test@example.com"))
         .andExpect(jsonPath("$.preferences.PRIMARY_TEXT_TYPE").value("TRANSLATION"));
   }
@@ -184,6 +191,9 @@ class UserControllerTest {
     Map<UserPreferenceType, String> userPreferences = new EnumMap<>(UserPreferenceType.class);
     userPreferences.put(UserPreferenceType.PRIMARY_TEXT_TYPE, "TRANSLATION");
     User updatedUser = new User();
+    ReflectionTestUtils.setField(updatedUser, "id", userId);
+    updatedUser.setName("Test User");
+    updatedUser.setPictureUrl("https://example.com/avatar.jpg");
     updatedUser.setEmail("test@example.com");
     updatedUser.setPreferences(userPreferences);
 
@@ -196,6 +206,9 @@ class UserControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of("preferences", preferences))))
         .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(userId))
+        .andExpect(jsonPath("$.name").value("Test User"))
+        .andExpect(jsonPath("$.pictureUrl").value("https://example.com/avatar.jpg"))
         .andExpect(jsonPath("$.email").value("test@example.com"))
         .andExpect(jsonPath("$.preferences.PRIMARY_TEXT_TYPE").value("TRANSLATION"));
   }
