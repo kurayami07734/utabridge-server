@@ -84,7 +84,17 @@ cp .env.example .env
 
 Edit the `.env` file with your values. See the Environment Variables section below.
 
-### 4. Run the Application
+### 4. Create a docker volume
+
+> Note: This is only needed to be done once.
+
+```bash
+docker volume create --name utabridge_postgres_data
+```
+
+> Note: Keeping an external volume to prevent accidental deletion of volume using `docker compose down -v`
+
+### 5. Run the Application
 
 ```bash
 docker compose up
