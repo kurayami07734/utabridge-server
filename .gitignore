@@ -33,4 +33,5 @@ build/
 
 logs/
 secrets/
+backups/
 .env

@@ -40,6 +40,25 @@ services:
       - gcp_key
     restart: unless-stopped
 
+  backup:
+    image: postgres:16-alpine
+    container_name: utabridge-backup-cron-job
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backups:/backups
+      - ./backup.sh:/bin/backup.sh
+    environment:
+      # Must match the DB container_name
+      - PGHOST=utabridge-db
+      - PGPORT=5432
+      - PGUSER=${DB_USER}
+      - PGPASSWORD=${DB_PASSWORD}
+      - PGDB=${DB_NAME}
+    entrypoint: [ "/bin/sh", "/bin/backup.sh" ]
+
 secrets:
   gcp_key:
     file: ./secrets/gcp-key.json
