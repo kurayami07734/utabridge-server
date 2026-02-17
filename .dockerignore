@@ -1,0 +1,45 @@
+# --- Build Artifacts (Maven & Gradle) ---
+target/
+build/
+out/
+.gradle/
+!target/*.jar
+!build/libs/*.jar
+
+# --- IDE & Editor Configs ---
+.idea/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+
+# --- Git Metadata ---
+.git/
+.gitignore
+
+# --- Local Environment & Secrets (CRITICAL) ---
+.env
+.env.*
+secrets/
+*.json
+*.key
+*.pem
+
+# --- Docker & Orchestration ---
+docker-compose.yml
+docker-compose.*.yml
+Dockerfile
+.dockerignore
+
+# --- Logs & Temp Files ---
+logs/
+*.log
+tmp/
+temp/
+
+backups/
+
+# --- OS System Files ---
+.DS_Store
+Thumbs.db
